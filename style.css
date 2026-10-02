@@ -1,0 +1,411 @@
+:root {
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --text: #25231f;
+  --secondary: #77716a;
+  --gold: #ae9465;
+  --gold-light: #d9c8a8;
+  --line: rgba(43, 38, 31, 0.11);
+}
+
+
+/* RESET */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "PingFang TC",
+    "Noto Sans TC",
+    "Helvetica Neue",
+    sans-serif;
+
+  color: var(--text);
+  background: var(--bg);
+
+  -webkit-font-smoothing: antialiased;
+}
+
+
+/* HERO */
+
+.hero {
+  min-height: 92svh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 80px 24px;
+
+  text-align: center;
+}
+
+.hero-inner {
+  max-width: 720px;
+}
+
+.eyebrow,
+.section-label,
+.tool-label {
+  margin: 0;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  letter-spacing: 0.23em;
+
+  color: var(--gold);
+
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 22px 0 18px;
+
+  font-family:
+    "Times New Roman",
+    "Noto Serif TC",
+    serif;
+
+  font-size: clamp(42px, 8vw, 70px);
+
+  font-weight: 400;
+
+  letter-spacing: 0.04em;
+}
+
+.hero-line {
+  width: 42px;
+  height: 1px;
+
+  margin: 26px auto;
+
+  background: var(--gold);
+}
+
+.date {
+  margin: 0 0 36px;
+
+  font-size: 13px;
+
+  letter-spacing: 0.24em;
+
+  color: var(--secondary);
+}
+
+.hero-title {
+  margin: 0 0 14px;
+
+  font-size: 22px;
+
+  letter-spacing: 0.06em;
+}
+
+.hero-description {
+  margin: 0 auto;
+
+  color: var(--secondary);
+
+  font-size: 15px;
+
+  line-height: 2;
+}
+
+.scroll-link {
+  display: inline-flex;
+
+  align-items: center;
+  gap: 10px;
+
+  margin-top: 50px;
+
+  color: var(--text);
+
+  text-decoration: none;
+
+  font-size: 13px;
+
+  letter-spacing: 0.08em;
+}
+
+
+/* GENERAL SECTION */
+
+.section {
+  width: min(100% - 40px, 960px);
+
+  margin: 0 auto;
+
+  padding: 110px 0;
+}
+
+.section h2 {
+  margin: 13px 0 20px;
+
+  font-family:
+    "Times New Roman",
+    "Noto Serif TC",
+    serif;
+
+  font-weight: 400;
+
+  font-size: clamp(32px, 6vw, 46px);
+}
+
+.section-description {
+  margin: 0 0 44px;
+
+  color: var(--secondary);
+
+  font-size: 15px;
+
+  line-height: 1.8;
+}
+
+
+/* INTRO */
+
+.intro {
+  text-align: center;
+
+  max-width: 680px;
+}
+
+.intro-text {
+  margin: 0;
+
+  color: var(--secondary);
+
+  line-height: 2.15;
+
+  font-size: 15px;
+}
+
+
+/* TOOL CARDS */
+
+.tools-section {
+  max-width: 900px;
+}
+
+.tool-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 14px;
+}
+
+.tool-card {
+  appearance: none;
+
+  width: 100%;
+
+  border: 1px solid var(--line);
+
+  background:
+    rgba(255, 255, 255, 0.72);
+
+  border-radius: 20px;
+
+  padding: 28px;
+
+  display: grid;
+
+  grid-template-columns:
+    auto 1fr auto;
+
+  gap: 20px;
+
+  align-items: start;
+
+  text-align: left;
+
+  color: inherit;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.tool-card:hover {
+  transform: translateY(-3px);
+
+  background: #fff;
+
+  box-shadow:
+    0 18px 40px rgba(43, 38, 31, 0.07);
+}
+
+.tool-number {
+  font-family:
+    "Times New Roman",
+    serif;
+
+  color: var(--gold-light);
+
+  font-size: 18px;
+}
+
+.tool-content h3 {
+  margin: 7px 0 9px;
+
+  font-size: 20px;
+
+  font-weight: 500;
+}
+
+.tool-content p:last-child {
+  margin: 0;
+
+  color: var(--secondary);
+
+  font-size: 14px;
+
+  line-height: 1.7;
+}
+
+.arrow {
+  color: var(--gold);
+
+  font-size: 20px;
+}
+
+
+/* TIMELINE */
+
+.timeline-section {
+  max-width: 720px;
+}
+
+.timeline {
+  margin-top: 50px;
+
+  border-top: 1px solid var(--line);
+}
+
+.timeline-item {
+  display: grid;
+
+  grid-template-columns:
+    90px 1fr;
+
+  gap: 28px;
+
+  padding: 28px 0;
+
+  border-bottom: 1px solid var(--line);
+}
+
+.timeline-time {
+  font-family:
+    "Times New Roman",
+    serif;
+
+  font-size: 25px;
+
+  color: var(--gold);
+}
+
+.timeline-content h3 {
+  margin: 0 0 7px;
+
+  font-size: 17px;
+
+  font-weight: 500;
+}
+
+.timeline-content p {
+  margin: 0;
+
+  color: var(--secondary);
+
+  font-size: 14px;
+}
+
+
+/* FOOTER */
+
+footer {
+  padding:
+    100px 20px 60px;
+
+  text-align: center;
+
+  color: var(--secondary);
+
+  font-size: 12px;
+
+  letter-spacing: 0.08em;
+}
+
+.footer-name {
+  margin-bottom: 8px;
+
+  color: var(--text);
+
+  font-family:
+    "Times New Roman",
+    "Noto Serif TC",
+    serif;
+
+  font-size: 22px;
+
+  letter-spacing: 0.08em;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 680px) {
+
+  .hero {
+    min-height: 88svh;
+
+    padding:
+      70px 24px;
+  }
+
+  .hero h1 {
+    font-size: 44px;
+  }
+
+  .section {
+    width:
+      min(100% - 36px, 960px);
+
+    padding: 82px 0;
+  }
+
+  .tool-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-card {
+    padding: 24px 20px;
+  }
+
+  .timeline-item {
+    grid-template-columns:
+      70px 1fr;
+
+    gap: 18px;
+  }
+
+}
