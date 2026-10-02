@@ -97,7 +97,14 @@
 
       <div class="tool-grid">
 
-        <button class="tool-card" type="button">
+        <button
+          class="tool-card"
+          id="open-task-modal"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="task-modal"
+          aria-expanded="false"
+        >
 
           <span class="tool-number">
             01
@@ -260,6 +267,18 @@
 
         </div>
 
+          <div class="timeline-item">
+
+             <div class="timeline-time">
+                 16:30
+                </div>
+
+            <div class="timeline-content">
+            <h3>婚禮結束</h3>
+            <p>婚禮工作人員依安排進行收尾與轉場</p>
+            </div>
+
+        </div>
 
         <div class="timeline-item">
 
@@ -307,6 +326,67 @@
     </section>
 
   </main>
+
+
+  <!-- MY TASKS MODAL -->
+  <div
+    class="task-modal"
+    id="task-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="task-modal-title"
+    aria-describedby="task-modal-description"
+    hidden
+  >
+
+    <div class="task-modal-panel">
+
+      <button
+        class="task-modal-close"
+        id="close-task-modal"
+        type="button"
+        aria-label="關閉找我的工作視窗"
+      >
+        <span aria-hidden="true">×</span>
+      </button>
+
+      <p class="task-modal-label">
+        MY TASKS
+      </p>
+
+      <h2 id="task-modal-title">
+        找我的工作
+      </h2>
+
+      <p
+        class="task-modal-description"
+        id="task-modal-description"
+      >
+        輸入你的姓名，查看婚禮當天的工作安排。
+      </p>
+
+      <label class="visually-hidden" for="task-name-search">
+        姓名
+      </label>
+
+      <input
+        class="task-search-input"
+        id="task-name-search"
+        type="search"
+        placeholder="輸入姓名"
+        aria-label="輸入姓名搜尋工作安排"
+        autocomplete="off"
+      >
+
+      <div
+        class="task-search-results"
+        id="task-search-results"
+        aria-live="polite"
+      ></div>
+
+    </div>
+
+  </div>
 
 
   <footer>
