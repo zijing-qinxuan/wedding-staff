@@ -134,7 +134,14 @@
         </button>
 
 
-        <button class="tool-card" type="button">
+        <button
+          class="tool-card"
+          id="open-teams-modal"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="task-modal"
+          aria-expanded="false"
+        >
 
           <span class="tool-number">
             02
@@ -345,7 +352,7 @@
         class="task-modal-close"
         id="close-task-modal"
         type="button"
-        aria-label="關閉找我的工作視窗"
+        aria-label="關閉工作資訊視窗"
       >
         <span aria-hidden="true">×</span>
       </button>
@@ -357,7 +364,7 @@
         hidden
       >
         <span aria-hidden="true">←</span>
-        返回搜尋
+        <span id="task-back-label">返回搜尋</span>
       </button>
 
       <div
@@ -402,6 +409,24 @@
       </div>
 
       <div
+        class="task-modal-view task-teams-view"
+        id="task-teams-view"
+        hidden
+      >
+
+        <p class="task-modal-label">TEAMS</p>
+
+        <h2 id="task-teams-title" tabindex="-1">工作分組</h2>
+
+        <p class="task-modal-description" id="task-teams-description">
+          查看各組工作人員、分工與共同安排。
+        </p>
+
+        <div class="team-card-list" id="team-card-list"></div>
+
+      </div>
+
+      <div
         class="task-modal-view task-schedule-view"
         id="task-schedule-view"
         hidden
@@ -435,6 +460,10 @@
             class="personal-task-list"
             id="personal-task-list"
           ></ol>
+
+          <p class="personal-task-empty" id="personal-task-empty" hidden>
+            詳細工作安排尚未加入。
+          </p>
 
         </section>
 
