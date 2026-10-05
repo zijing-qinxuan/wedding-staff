@@ -350,39 +350,110 @@
         <span aria-hidden="true">×</span>
       </button>
 
-      <p class="task-modal-label">
-        MY TASKS
-      </p>
-
-      <h2 id="task-modal-title">
-        找我的工作
-      </h2>
-
-      <p
-        class="task-modal-description"
-        id="task-modal-description"
+      <button
+        class="task-back-button"
+        id="back-to-task-search"
+        type="button"
+        hidden
       >
-        輸入你的姓名，查看婚禮當天的工作安排。
-      </p>
-
-      <label class="visually-hidden" for="task-name-search">
-        姓名
-      </label>
-
-      <input
-        class="task-search-input"
-        id="task-name-search"
-        type="search"
-        placeholder="輸入姓名"
-        aria-label="輸入姓名搜尋工作安排"
-        autocomplete="off"
-      >
+        <span aria-hidden="true">←</span>
+        返回搜尋
+      </button>
 
       <div
-        class="task-search-results"
-        id="task-search-results"
-        aria-live="polite"
-      ></div>
+        class="task-modal-view task-search-view"
+        id="task-search-view"
+      >
+
+        <p class="task-modal-label">
+          MY TASKS
+        </p>
+
+        <h2 id="task-modal-title">
+          找我的工作
+        </h2>
+
+        <p
+          class="task-modal-description"
+          id="task-modal-description"
+        >
+          輸入你的姓名，查看婚禮當天的工作安排。
+        </p>
+
+        <label class="visually-hidden" for="task-name-search">
+          姓名
+        </label>
+
+        <input
+          class="task-search-input"
+          id="task-name-search"
+          type="search"
+          placeholder="輸入姓名"
+          aria-label="輸入姓名搜尋工作安排"
+          autocomplete="off"
+        >
+
+        <div
+          class="task-search-results"
+          id="task-search-results"
+          aria-live="polite"
+        ></div>
+
+      </div>
+
+      <div
+        class="task-modal-view task-schedule-view"
+        id="task-schedule-view"
+        hidden
+      >
+
+        <header class="personal-schedule-header">
+
+          <p class="task-modal-label">
+            MY SCHEDULE
+          </p>
+
+          <h2 id="task-schedule-name"></h2>
+
+          <p
+            class="task-schedule-meta"
+            id="task-schedule-meta"
+          ></p>
+
+        </header>
+
+        <section
+          class="personal-tasks"
+          aria-labelledby="personal-tasks-title"
+        >
+
+          <h3 id="personal-tasks-title">
+            我的工作
+          </h3>
+
+          <ol
+            class="personal-task-list"
+            id="personal-task-list"
+          ></ol>
+
+        </section>
+
+        <section
+          class="personal-table-card"
+          aria-labelledby="personal-table-title"
+        >
+
+          <p class="task-modal-label">
+            MY TABLE
+          </p>
+
+          <h3 id="personal-table-title"></h3>
+
+          <p id="personal-table-description"></p>
+
+        </section>
+
+      </div>
 
     </div>
 

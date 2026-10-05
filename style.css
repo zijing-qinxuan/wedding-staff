@@ -346,11 +346,16 @@ body.modal-open {
   position: relative;
 
   width: 100%;
-  max-height: calc(100svh - 36px);
+  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
 
-  padding: 45px 24px 30px;
+  padding:
+    45px 24px
+    max(30px, calc(18px + env(safe-area-inset-bottom)));
 
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 
   background: var(--bg);
   border: 1px solid rgba(174, 148, 101, 0.18);
@@ -360,15 +365,40 @@ body.modal-open {
 
   transform: translateY(24px);
 
-  transition: transform 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    max-width 0.3s ease;
 }
 
 .task-modal.is-open .task-modal-panel {
   transform: translateY(0);
 }
 
+.task-modal-view[hidden] {
+  display: none;
+}
+
+.task-modal-view:not([hidden]) {
+  animation: task-view-enter 0.28s ease both;
+}
+
+@keyframes task-view-enter {
+
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+}
+
 .task-modal-close {
   position: absolute;
+  z-index: 2;
   top: 18px;
   right: 18px;
 
@@ -548,7 +578,248 @@ body.modal-open {
   font-size: 14px;
 }
 
+
+/* PERSONAL SCHEDULE */
+
+.task-schedule-view {
+  padding-top: 42px;
+}
+
+.task-back-button {
+  appearance: none;
+
+  position: absolute;
+  top: 21px;
+  left: 24px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 5px 0;
+
+  color: var(--secondary);
+  background: transparent;
+  border: 0;
+
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+
+  cursor: pointer;
+
+  transition: color 0.2s ease;
+}
+
+.task-back-button[hidden] {
+  display: none;
+}
+
+.personal-task-title-group {
+  min-width: 0;
+}
+
+.task-schedule-view {
+  overflow-wrap: anywhere;
+}
+
+.task-back-button span {
+  color: var(--gold);
+
+  font-size: 17px;
+}
+
+.task-back-button:hover {
+  color: var(--text);
+}
+
+.personal-schedule-header {
+  padding-bottom: 30px;
+
+  border-bottom: 1px solid var(--line);
+}
+
+.personal-schedule-header h2 {
+  margin-bottom: 8px;
+}
+
+.task-schedule-meta {
+  margin: 0;
+
+  color: var(--secondary);
+
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+
+.personal-tasks {
+  margin-top: 34px;
+}
+
+.personal-tasks > h3 {
+  margin: 0 0 30px;
+
+  font-family:
+    "Times New Roman",
+    "Noto Serif TC",
+    serif;
+
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.personal-task-list {
+  margin: 0 0 0 6px;
+  padding: 0 0 0 27px;
+
+  border-left: 1px solid rgba(174, 148, 101, 0.42);
+
+  list-style: none;
+}
+
+.personal-task-item {
+  position: relative;
+}
+
+.personal-task-item::before {
+  content: "";
+
+  position: absolute;
+  top: 6px;
+  left: -33px;
+
+  width: 11px;
+  height: 11px;
+
+  background: var(--bg);
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+}
+
+.personal-task-item:not(:last-child) {
+  margin-bottom: 30px;
+  padding-bottom: 30px;
+
+  border-bottom: 1px solid var(--line);
+}
+
+.personal-task-heading {
+  display: grid;
+  gap: 9px;
+}
+
+.personal-task-time {
+  color: var(--gold);
+
+  font-family:
+    "Times New Roman",
+    serif;
+
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.personal-task-title {
+  margin: 0 0 7px;
+
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.personal-task-place {
+  margin: 0;
+
+  color: #5f5a53;
+
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.personal-task-description {
+  margin: 16px 0;
+
+  color: var(--secondary);
+
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.personal-task-notes {
+  margin: 0;
+  padding: 13px 14px;
+
+  display: grid;
+  gap: 8px;
+
+  background: rgba(255, 255, 255, 0.55);
+  border-left: 2px solid var(--gold-light);
+  border-radius: 0 10px 10px 0;
+}
+
+.personal-task-notes > div {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.personal-task-note-label,
+.personal-task-note-value {
+  margin: 0;
+
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.personal-task-note-label {
+  color: #9a8a6d;
+}
+
+.personal-task-note-label::after {
+  content: "：";
+}
+
+.personal-task-note-value {
+  color: var(--secondary);
+}
+
+.personal-table-card {
+  margin-top: 40px;
+  padding: 24px 22px;
+
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(174, 148, 101, 0.22);
+  border-radius: 18px;
+
+  box-shadow: 0 12px 30px rgba(43, 38, 31, 0.04);
+}
+
+.personal-table-card h3 {
+  margin: 9px 0 8px;
+
+  font-family:
+    "Times New Roman",
+    "Noto Serif TC",
+    serif;
+
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.personal-table-card > p:last-child {
+  margin: 0;
+
+  color: var(--secondary);
+
+  font-size: 13px;
+  line-height: 1.75;
+}
+
 .task-modal-close:focus-visible,
+.task-back-button:focus-visible,
 .task-result-item:focus-visible,
 .tool-card:focus-visible {
   outline: 2px solid var(--gold);
@@ -572,6 +843,29 @@ body.modal-open {
     transform: translateY(12px) scale(0.985);
   }
 
+  .task-modal-panel.has-schedule {
+    max-width: 640px;
+  }
+
+  .task-back-button {
+    left: 46px;
+  }
+
+  .personal-task-heading {
+    grid-template-columns: 118px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .personal-task-description,
+  .personal-task-notes {
+    margin-left: 134px;
+  }
+
+  .personal-task-description {
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+
   .task-modal.is-open .task-modal-panel {
     transform: translateY(0) scale(1);
   }
@@ -581,8 +875,10 @@ body.modal-open {
 @media (prefers-reduced-motion: reduce) {
 
   .task-modal,
-  .task-modal-panel {
+  .task-modal-panel,
+  .task-modal-view {
     transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
   }
 
 }
