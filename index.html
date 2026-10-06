@@ -171,7 +171,14 @@
         </button>
 
 
-        <button class="tool-card" type="button">
+        <button
+          class="tool-card"
+          id="open-timeline-modal"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="task-modal"
+          aria-expanded="false"
+        >
 
           <span class="tool-number">
             03
@@ -423,6 +430,30 @@
         </p>
 
         <div class="team-card-list" id="team-card-list"></div>
+
+      </div>
+
+      <div
+        class="task-modal-view task-full-timeline-view"
+        id="task-full-timeline-view"
+        hidden
+      >
+
+        <p class="task-modal-label">FULL TIMELINE</p>
+
+        <h2 id="full-timeline-title" tabindex="-1">完整工作流程</h2>
+
+        <p class="task-modal-description" id="full-timeline-description">
+          依時間查看婚禮當天的重要流程與工作人員安排。
+        </p>
+
+        <nav
+          class="full-timeline-nav"
+          id="full-timeline-nav"
+          aria-label="完整工作流程快速跳轉"
+        ></nav>
+
+        <div class="full-timeline-sections" id="full-timeline-sections"></div>
 
       </div>
 

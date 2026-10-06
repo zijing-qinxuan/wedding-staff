@@ -133,17 +133,98 @@ const teams = [
   }
 ];
 
+const weddingTimeline = [
+  {
+    time: "13:00", phase: "婚禮準備", title: "婚禮工作人員陸續到場",
+    place: "竹東王國聚會所",
+    description: "依各組安排完成場地、入口及相關準備。", teams: ["welcome"]
+  },
+  {
+    time: "13:20", phase: "婚禮準備", title: "婚禮工作人員集合",
+    place: "竹東王國聚會所",
+    description: "各組確認人員、位置與工作內容。", teams: ["welcome"]
+  },
+  {
+    time: "13:30", phase: "婚禮", title: "賓客開放入場",
+    place: "竹東王國聚會所",
+    description: "招待人員開始協助賓客入場及現場引導。", teams: ["welcome"]
+  },
+  {
+    time: "14:30", phase: "婚禮", title: "婚禮開始",
+    place: "竹東王國聚會所",
+    description: "婚禮儀式正式開始。非必要工作人員依安排待命。", teams: ["welcome"]
+  },
+  {
+    time: "16:30", phase: "轉場", title: "婚禮結束",
+    place: "竹東王國聚會所",
+    description: "依各組安排完成收尾，並前往晶宴會館。", teams: ["welcome", "banquet"]
+  },
+  {
+    time: "16:20", phase: "婚宴準備", title: "婚宴工作人員集合",
+    place: "晶宴會館・星辰劇場",
+    description: "婚宴工作人員確認工作位置、桌位資料及入場安排。", teams: ["banquet"]
+  },
+  {
+    time: "16:40", phase: "婚宴準備", title: "婚宴最後確認",
+    place: "晶宴會館・星辰劇場",
+    description: "確認桌位、入口、引導動線及各區工作狀況。", teams: ["welcome", "banquet"]
+  },
+  {
+    time: "17:00", phase: "婚宴", title: "婚宴開放入場",
+    place: "晶宴會館・星辰劇場",
+    description: "工作人員開始協助賓客查詢桌號與入席。", teams: ["welcome", "banquet"]
+  },
+  {
+    time: "17:50", phase: "婚宴", title: "入場工作收尾",
+    place: "晶宴會館・星辰劇場",
+    description: "確認主要賓客已入席，各組依安排準備下一階段。", teams: ["welcome", "banquet"]
+  },
+  {
+    time: "18:00", phase: "婚宴", title: "婚宴開始",
+    place: "晶宴會館・星辰劇場",
+    description: "婚宴正式開始。工作人員依各自安排工作或入席。", teams: ["banquet"]
+  },
+  {
+    time: "20:15", phase: "送客準備", title: "工作人員準備送客",
+    place: "晶宴會館・星辰劇場",
+    description: "依工作安排前往送客區或指定位置準備。", teams: ["banquet"]
+  },
+  {
+    time: "20:30", phase: "送客", title: "婚宴結束・送客",
+    place: "晶宴會館・星辰劇場",
+    description: "協助送客及婚宴結束後的必要收尾。", teams: ["banquet"]
+  }
+];
+
+const timelineGroups = {
+  ceremony: { label: "CEREMONY", name: "婚禮" },
+  transition: { label: "TRANSITION", name: "轉場" },
+  banquet: { label: "BANQUET", name: "婚宴" },
+  farewell: { label: "FAREWELL", name: "送客" }
+};
+
+const timelinePhaseGroups = {
+  婚禮準備: "ceremony", 婚禮: "ceremony", 轉場: "transition",
+  婚宴準備: "banquet", 婚宴: "banquet", 送客準備: "farewell", 送客: "farewell"
+};
+
 const staffById = new Map(staffMembers.map((member) => [member.id, member]));
+const teamsById = new Map(teams.map((team) => [team.id, team]));
 
 const taskModal = document.querySelector("#task-modal");
 const taskModalPanel = taskModal.querySelector(".task-modal-panel");
 const openTaskModalButton = document.querySelector("#open-task-modal");
 const openTeamsModalButton = document.querySelector("#open-teams-modal");
+const openTimelineModalButton = document.querySelector("#open-timeline-modal");
 const closeTaskModalButton = document.querySelector("#close-task-modal");
 const taskSearchView = document.querySelector("#task-search-view");
 const taskTeamsView = document.querySelector("#task-teams-view");
 const taskTeamsTitle = document.querySelector("#task-teams-title");
 const teamCardList = document.querySelector("#team-card-list");
+const taskFullTimelineView = document.querySelector("#task-full-timeline-view");
+const fullTimelineTitle = document.querySelector("#full-timeline-title");
+const fullTimelineNav = document.querySelector("#full-timeline-nav");
+const fullTimelineSections = document.querySelector("#full-timeline-sections");
 const taskScheduleView = document.querySelector("#task-schedule-view");
 const backToSearchButton = document.querySelector("#back-to-task-search");
 const taskBackLabel = document.querySelector("#task-back-label");
@@ -254,6 +335,117 @@ function renderTeams() {
   });
 }
 
+function timeInMinutes(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function getTimelineSections(events) {
+  const sortedEvents = [...events].sort(
+    (a, b) => timeInMinutes(a.time) - timeInMinutes(b.time)
+  );
+  const sections = [];
+
+  sortedEvents.forEach((event) => {
+    const group = timelinePhaseGroups[event.phase] || event.phase;
+    let section = sections[sections.length - 1];
+
+    // Only combine adjacent groups so overlapping stages stay chronological.
+    if (!section || section.group !== group) {
+      section = { group, events: [] };
+      sections.push(section);
+    }
+    section.events.push(event);
+  });
+
+  return sections;
+}
+
+function jumpToTimelineSection(heading) {
+  const top = taskModalPanel.scrollTop +
+    heading.getBoundingClientRect().top - taskModalPanel.getBoundingClientRect().top - 24;
+  heading.focus({ preventScroll: true });
+  taskModalPanel.scrollTo({
+    top: Math.max(0, top),
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"
+  });
+}
+
+function renderFullTimeline() {
+  fullTimelineSections.replaceChildren();
+  fullTimelineNav.replaceChildren();
+  const firstHeadingByGroup = new Map();
+
+  getTimelineSections(weddingTimeline).forEach((data, index) => {
+    const group = timelineGroups[data.group] || { label: "TIMELINE", name: data.group };
+    const section = createElement("section", "full-timeline-section");
+    const header = createElement("header", "full-timeline-divider");
+    const heading = createElement("h3", "full-timeline-section-title", group.name);
+    const list = createElement("ol", "full-timeline-list");
+
+    heading.id = `full-timeline-section-${index}`;
+    heading.tabIndex = -1;
+    section.setAttribute("aria-labelledby", heading.id);
+    header.append(createElement("p", "task-modal-label", group.label), heading);
+    if (!firstHeadingByGroup.has(data.group)) {
+      firstHeadingByGroup.set(data.group, heading);
+    }
+
+    data.events.forEach((event) => {
+      const item = createElement("li", "full-timeline-item");
+      const time = createElement("time", "full-timeline-time", event.time);
+      const content = createElement("div", "full-timeline-content");
+      const related = createElement("p", "full-timeline-related");
+      time.dateTime = event.time;
+      related.append(createElement("span", "full-timeline-related-label", "相關："));
+      event.teams.forEach((id, teamIndex) => {
+        const team = teamsById.get(id);
+        if (!team) return;
+        if (teamIndex > 0) related.append(document.createTextNode(" · "));
+        related.append(createElement("span", "full-timeline-team-label", team.name));
+      });
+      content.append(
+        createElement("p", "full-timeline-phase", event.phase),
+        createElement("h4", "full-timeline-event-title", event.title),
+        createElement("p", "full-timeline-place", event.place),
+        createElement("p", "full-timeline-description", event.description),
+        related
+      );
+      item.append(time, content);
+      list.append(item);
+    });
+
+    section.append(header, list);
+    fullTimelineSections.append(section);
+  });
+
+  // Navigation has one target per group even when a group resumes later.
+  Object.entries(timelineGroups).forEach(([id, group]) => {
+    const heading = firstHeadingByGroup.get(id);
+    if (!heading) return;
+    const button = createElement("button", "full-timeline-nav-button", group.name);
+    button.type = "button";
+    button.setAttribute("aria-controls", heading.id);
+    button.addEventListener("click", () => jumpToTimelineSection(heading));
+    fullTimelineNav.append(button);
+  });
+}
+
+function showFullTimeline() {
+  renderFullTimeline();
+  currentView = "timeline";
+  taskSearchView.hidden = true;
+  taskTeamsView.hidden = true;
+  taskScheduleView.hidden = true;
+  taskFullTimelineView.hidden = false;
+  backToSearchButton.hidden = true;
+  taskModalPanel.classList.remove("has-schedule", "has-teams");
+  taskModalPanel.classList.add("has-full-timeline");
+  taskModal.setAttribute("aria-labelledby", "full-timeline-title");
+  taskModal.setAttribute("aria-describedby", "full-timeline-description");
+  taskModalPanel.scrollTop = 0;
+}
+
 function createPersonalTask(task) {
   const taskItem = document.createElement("li");
   const heading = createElement("div", "personal-task-heading");
@@ -303,6 +495,8 @@ function showPersonalSchedule(member, sourceButton) {
 
   taskSearchView.hidden = true;
   taskTeamsView.hidden = true;
+  taskFullTimelineView.hidden = true;
+  taskModalPanel.classList.remove("has-full-timeline");
   taskScheduleView.hidden = false;
   backToSearchButton.hidden = false;
   taskBackLabel.textContent = previousView === "teams" ? "返回工作分組" : "返回搜尋";
@@ -324,6 +518,8 @@ function showTaskSearch(options = {}) {
 
   taskScheduleView.hidden = true;
   taskTeamsView.hidden = true;
+  taskFullTimelineView.hidden = true;
+  taskModalPanel.classList.remove("has-full-timeline");
   taskSearchView.hidden = false;
   currentView = "search";
   backToSearchButton.hidden = true;
@@ -346,6 +542,8 @@ function showTeams(options = {}) {
   const { focus = true } = options;
 
   currentView = "teams";
+  taskFullTimelineView.hidden = true;
+  taskModalPanel.classList.remove("has-full-timeline");
   taskSearchView.hidden = true;
   taskScheduleView.hidden = true;
   taskTeamsView.hidden = false;
@@ -445,6 +643,8 @@ function openTaskModal(view = "search", opener = openTaskModalButton) {
   previousMemberButton = null;
   if (view === "teams") {
     showTeams({ focus: false });
+  } else if (view === "timeline") {
+    showFullTimeline();
   } else {
     showTaskSearch({ focus: false });
   }
@@ -454,7 +654,8 @@ function openTaskModal(view = "search", opener = openTaskModalButton) {
   requestAnimationFrame(() => {
     if (isClosing || taskModal.hidden) return;
     taskModal.classList.add("is-open");
-    const focusTarget = view === "teams" ? taskTeamsTitle : taskSearchInput;
+    const focusTarget = view === "timeline" ? fullTimelineTitle :
+      view === "teams" ? taskTeamsTitle : taskSearchInput;
     focusTarget.focus({ preventScroll: true });
   });
 }
@@ -513,6 +714,7 @@ renderTeams();
 
 openTaskModalButton.addEventListener("click", () => openTaskModal());
 openTeamsModalButton.addEventListener("click", () => openTaskModal("teams", openTeamsModalButton));
+openTimelineModalButton.addEventListener("click", () => openTaskModal("timeline", openTimelineModalButton));
 closeTaskModalButton.addEventListener("click", closeTaskModal);
 backToSearchButton.addEventListener("click", returnToPreviousView);
 taskSearchInput.addEventListener("input", renderSearchResults);
