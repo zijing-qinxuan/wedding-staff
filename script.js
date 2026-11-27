@@ -1,734 +1,409 @@
-const staffMembers = [
-  {
-    id: "wang-xiaoming",
-    name: "王小明",
-    group: "招待組",
-    role: "入口引導",
-    table: "18",
-    tasks: [
-      {
-        time: "13:20",
-        place: "竹東王國聚會所",
-        title: "工作人員集合",
-        description: "到場後與招待組集合，確認婚禮入場工作。",
-        with: "招待組",
-        next: "13:30 開始協助賓客入場"
-      },
-      {
-        time: "13:30–14:30",
-        place: "聚會所入口",
-        title: "婚禮賓客入場",
-        description: "協助賓客進場，並留意需要協助的長輩。",
-        with: "招待組",
-        next: "婚禮開始後依安排待命"
-      },
-      {
-        time: "16:30",
-        place: "晶宴會館・星辰劇場",
-        title: "婚宴工作人員集合",
-        description: "確認婚宴入口位置與桌位引導安排。",
-        with: "招待組",
-        next: "17:00 開始婚宴接待"
-      },
-      {
-        time: "17:00–17:50",
-        place: "星辰劇場入口",
-        title: "婚宴賓客引導",
-        description: "協助賓客確認桌號並指引入場方向。",
-        with: "招待組",
-        next: "工作完成後準備入席"
-      }
-    ]
-  },
-  {
-    id: "lin-xiaohua",
-    name: "林小華",
-    group: "婚宴組",
-    role: "桌位協助",
-    table: "20",
-    tasks: [
-      {
-        time: "16:20",
-        place: "晶宴會館・星辰劇場",
-        title: "婚宴工作人員集合",
-        description: "確認桌位名單及工作區域。",
-        with: "婚宴組",
-        next: "17:00 開始協助賓客入場"
-      },
-      {
-        time: "17:00–18:00",
-        place: "婚宴入口",
-        title: "桌位查詢",
-        description: "協助賓客確認桌號，並引導至正確區域。",
-        with: "招待組",
-        next: "開席後依安排返回座位"
-      }
-    ]
-  },
-  {
-    id: "chen-daming",
-    name: "陳大明",
-    group: "招待組",
-    role: "電梯口引導",
-    table: "18",
-    tasks: []
-  },
-  {
-    id: "zhang-xiaomei",
-    name: "張小美",
-    group: "招待組",
-    role: "長輩協助",
-    table: "18",
-    tasks: []
-  },
-  {
-    id: "lin-zhihao",
-    name: "林志豪",
-    group: "招待組",
-    role: "現場機動",
-    table: "18",
-    tasks: []
-  },
-  {
-    id: "chen-yijun",
-    name: "陳怡君",
-    group: "婚宴組",
-    role: "入口名單確認",
-    table: "20",
-    tasks: []
-  },
-  {
-    id: "huang-junjie",
-    name: "黃俊傑",
-    group: "婚宴組",
-    role: "場內引導",
-    table: "20",
-    tasks: []
-  }
-];
+(() => {
+  "use strict";
 
-// People are maintained once in staffMembers; teams only reference stable ids.
-const teams = [
-  {
-    id: "welcome",
-    label: "WELCOME TEAM",
-    name: "招待組",
-    members: ["wang-xiaoming", "chen-daming", "zhang-xiaomei", "lin-zhihao"],
-    schedule: [
-      { time: "13:20", title: "婚禮工作人員集合", place: "竹東王國聚會所" },
-      { time: "16:30", title: "婚宴工作人員集合", place: "晶宴會館・星辰劇場" },
-      { time: "17:00", title: "開始婚宴接待" }
-    ]
-  },
-  {
-    id: "banquet",
-    label: "BANQUET TEAM",
-    name: "婚宴組",
-    members: ["lin-xiaohua", "chen-yijun", "huang-junjie"],
-    schedule: [
-      { time: "16:20", title: "婚宴工作人員集合", place: "晶宴會館・星辰劇場" },
-      { time: "16:40", title: "確認桌位與工作區域" },
-      { time: "17:00", title: "開始協助賓客入場" }
-    ]
-  }
-];
+  const data = weddingData;
+  const peopleById = new Map(data.people.map((person) => [person.id, person]));
+  const teamsById = new Map(data.teams.map((team) => [team.id, team]));
+  const statusText = { confirmed: "已確認", tentative: "暫定", pending: "待公布" };
 
-const weddingTimeline = [
-  {
-    time: "13:00", phase: "婚禮準備", title: "婚禮工作人員陸續到場",
-    place: "竹東王國聚會所",
-    description: "依各組安排完成場地、入口及相關準備。", teams: ["welcome"]
-  },
-  {
-    time: "13:20", phase: "婚禮準備", title: "婚禮工作人員集合",
-    place: "竹東王國聚會所",
-    description: "各組確認人員、位置與工作內容。", teams: ["welcome"]
-  },
-  {
-    time: "13:30", phase: "婚禮", title: "賓客開放入場",
-    place: "竹東王國聚會所",
-    description: "招待人員開始協助賓客入場及現場引導。", teams: ["welcome"]
-  },
-  {
-    time: "14:30", phase: "婚禮", title: "婚禮開始",
-    place: "竹東王國聚會所",
-    description: "婚禮儀式正式開始。非必要工作人員依安排待命。", teams: ["welcome"]
-  },
-  {
-    time: "16:30", phase: "轉場", title: "婚禮結束",
-    place: "竹東王國聚會所",
-    description: "依各組安排完成收尾，並前往晶宴會館。", teams: ["welcome", "banquet"]
-  },
-  {
-    time: "16:20", phase: "婚宴準備", title: "婚宴工作人員集合",
-    place: "晶宴會館・星辰劇場",
-    description: "婚宴工作人員確認工作位置、桌位資料及入場安排。", teams: ["banquet"]
-  },
-  {
-    time: "16:40", phase: "婚宴準備", title: "婚宴最後確認",
-    place: "晶宴會館・星辰劇場",
-    description: "確認桌位、入口、引導動線及各區工作狀況。", teams: ["welcome", "banquet"]
-  },
-  {
-    time: "17:00", phase: "婚宴", title: "婚宴開放入場",
-    place: "晶宴會館・星辰劇場",
-    description: "工作人員開始協助賓客查詢桌號與入席。", teams: ["welcome", "banquet"]
-  },
-  {
-    time: "17:50", phase: "婚宴", title: "入場工作收尾",
-    place: "晶宴會館・星辰劇場",
-    description: "確認主要賓客已入席，各組依安排準備下一階段。", teams: ["welcome", "banquet"]
-  },
-  {
-    time: "18:00", phase: "婚宴", title: "婚宴開始",
-    place: "晶宴會館・星辰劇場",
-    description: "婚宴正式開始。工作人員依各自安排工作或入席。", teams: ["banquet"]
-  },
-  {
-    time: "20:15", phase: "送客準備", title: "工作人員準備送客",
-    place: "晶宴會館・星辰劇場",
-    description: "依工作安排前往送客區或指定位置準備。", teams: ["banquet"]
-  },
-  {
-    time: "20:30", phase: "送客", title: "婚宴結束・送客",
-    place: "晶宴會館・星辰劇場",
-    description: "協助送客及婚宴結束後的必要收尾。", teams: ["banquet"]
-  }
-];
-
-const timelineGroups = {
-  ceremony: { label: "CEREMONY", name: "婚禮" },
-  transition: { label: "TRANSITION", name: "轉場" },
-  banquet: { label: "BANQUET", name: "婚宴" },
-  farewell: { label: "FAREWELL", name: "送客" }
-};
-
-const timelinePhaseGroups = {
-  婚禮準備: "ceremony", 婚禮: "ceremony", 轉場: "transition",
-  婚宴準備: "banquet", 婚宴: "banquet", 送客準備: "farewell", 送客: "farewell"
-};
-
-const staffById = new Map(staffMembers.map((member) => [member.id, member]));
-const teamsById = new Map(teams.map((team) => [team.id, team]));
-
-const taskModal = document.querySelector("#task-modal");
-const taskModalPanel = taskModal.querySelector(".task-modal-panel");
-const openTaskModalButton = document.querySelector("#open-task-modal");
-const openTeamsModalButton = document.querySelector("#open-teams-modal");
-const openTimelineModalButton = document.querySelector("#open-timeline-modal");
-const closeTaskModalButton = document.querySelector("#close-task-modal");
-const taskSearchView = document.querySelector("#task-search-view");
-const taskTeamsView = document.querySelector("#task-teams-view");
-const taskTeamsTitle = document.querySelector("#task-teams-title");
-const teamCardList = document.querySelector("#team-card-list");
-const taskFullTimelineView = document.querySelector("#task-full-timeline-view");
-const fullTimelineTitle = document.querySelector("#full-timeline-title");
-const fullTimelineNav = document.querySelector("#full-timeline-nav");
-const fullTimelineSections = document.querySelector("#full-timeline-sections");
-const taskScheduleView = document.querySelector("#task-schedule-view");
-const backToSearchButton = document.querySelector("#back-to-task-search");
-const taskBackLabel = document.querySelector("#task-back-label");
-const taskSearchInput = document.querySelector("#task-name-search");
-const taskSearchResults = document.querySelector("#task-search-results");
-const taskScheduleName = document.querySelector("#task-schedule-name");
-const taskScheduleMeta = document.querySelector("#task-schedule-meta");
-const personalTaskList = document.querySelector("#personal-task-list");
-const personalTaskEmpty = document.querySelector("#personal-task-empty");
-const personalTableTitle = document.querySelector("#personal-table-title");
-const personalTableDescription = document.querySelector(
-  "#personal-table-description"
-);
-
-let pageScrollPosition = 0;
-let closeTimer;
-let isClosing = false;
-let currentView = "search";
-let previousView = "search";
-let previousScrollTop = 0;
-let previousMemberButton = null;
-let modalOpener = openTaskModalButton;
-
-function createElement(tagName, className, text) {
-  const element = document.createElement(tagName);
-
-  if (className) {
-    element.className = className;
+  function element(tag, className = "", text = "") {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.textContent = text;
+    return node;
   }
 
-  if (text) {
-    element.textContent = text;
+  function personName(id) {
+    return peopleById.get(id)?.name || "待公布";
   }
 
-  return element;
-}
+  function peopleNames(ids = []) {
+    return ids.map(personName).join("、");
+  }
 
-function createTaskNote(label, value) {
-  const note = document.createElement("div");
-  const term = createElement("dt", "personal-task-note-label", label);
-  const description = createElement(
-    "dd",
-    "personal-task-note-value",
-    value
-  );
+  function statusBadge(status) {
+    const badge = element("span", `status status-${status}`, statusText[status] || status);
+    return badge;
+  }
 
-  note.append(term, description);
+  function list(items, className = "") {
+    const ul = element("ul", className);
+    items.forEach((item) => ul.append(element("li", "", item)));
+    return ul;
+  }
 
-  return note;
-}
-
-function renderTeams() {
-  teamCardList.replaceChildren();
-
-  teams.forEach((team) => {
-    const members = team.members.map((id) => staffById.get(id));
-    const card = createElement("section", "team-card");
-    const header = createElement("header", "team-card-header");
-    const label = createElement("p", "task-modal-label", team.label);
-    const title = createElement("h3", "team-card-title", team.name);
-    const count = createElement("p", "team-card-count", `${members.length} 人`);
-    const memberList = createElement("ul", "team-member-list");
-
-    title.id = `team-${team.id}-title`;
-    card.setAttribute("aria-labelledby", title.id);
-    header.append(label, title, count);
-
-    members.forEach((member) => {
-      const item = document.createElement("li");
-      const button = createElement("button", "team-member-button");
-      const text = document.createElement("span");
-      const name = createElement("span", "team-member-name", member.name);
-      const role = createElement("span", "team-member-role", member.role);
-      const arrow = createElement("span", "task-result-arrow", "→");
-
-      button.type = "button";
-      button.setAttribute("aria-label", `${member.name}，${member.role}，查看個人工作安排`);
-      arrow.setAttribute("aria-hidden", "true");
-      button.addEventListener("click", () => showPersonalSchedule(member, button));
-      text.append(name, role);
-      button.append(text, arrow);
-      item.append(button);
-      memberList.append(item);
+  function validateData() {
+    const errors = [];
+    const ids = new Set();
+    data.people.forEach(({ id }) => {
+      if (ids.has(id)) errors.push(`重複的人員 ID：${id}`);
+      ids.add(id);
     });
-
-    const commonSchedule = createElement("section", "team-common-schedule");
-    const scheduleLabel = createElement("p", "task-modal-label", "COMMON SCHEDULE");
-    const scheduleTitle = createElement("h4", "team-common-title", "共同安排");
-    const scheduleList = createElement("ol", "team-schedule-list");
-
-    scheduleTitle.id = `team-${team.id}-schedule-title`;
-    commonSchedule.setAttribute("aria-labelledby", scheduleTitle.id);
-    team.schedule.forEach((event) => {
-      const item = createElement("li", "team-schedule-item");
-      const time = createElement("span", "team-schedule-time", event.time);
-      const text = document.createElement("div");
-      text.append(createElement("p", "team-schedule-event", event.title));
-      if (event.place) {
-        text.append(createElement("p", "team-schedule-place", event.place));
-      }
-      item.append(time, text);
-      scheduleList.append(item);
+    const checkPeople = (idsToCheck, path) => idsToCheck.forEach((id) => {
+      if (!ids.has(id)) errors.push(`${path} 找不到人員：${id}`);
     });
+    data.management.forEach((item) => checkPeople([item.personId], `management.${item.role}`));
+    data.teams.forEach((team) => {
+      checkPeople(team.memberIds || [], `teams.${team.id}`);
+      checkPeople(team.supportIds || [], `teams.${team.id}.supportIds`);
+      checkPeople(team.candidateIds || [], `teams.${team.id}.candidateIds`);
+      if (team.leaderId) checkPeople([team.leaderId], `teams.${team.id}.leaderId`);
+    });
+    data.assignments.forEach((item) => checkPeople([item.personId], "assignments"));
+    data.cameraPositions.forEach((item) => {
+      if (item.operatorId) checkPeople([item.operatorId], `cameraPositions.${item.id}`);
+    });
+    if (errors.length) console.error("[婚禮工作資料]", errors);
+    return errors;
+  }
 
-    commonSchedule.append(scheduleLabel, scheduleTitle, scheduleList);
-    card.append(header, memberList, commonSchedule);
-    teamCardList.append(card);
-  });
-}
+  function renderHero() {
+    document.querySelector("#hero-couple").textContent = data.weddingInfo.couple;
+    document.querySelector("#hero-title").textContent = data.weddingInfo.title;
+    document.querySelector("#hero-date").textContent = `${data.weddingInfo.dateShort}・${data.weddingInfo.weekday}`;
+    document.querySelector("#hero-message").textContent = data.weddingInfo.message;
 
-function timeInMinutes(time) {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-}
+    const container = document.querySelector("#key-times");
+    data.keyTimes.forEach((item) => {
+      const link = element("a", "key-time");
+      link.href = `#event-${item.scheduleId}`;
+      link.append(element("strong", "", item.time), element("span", "", item.label));
+      container.append(link);
+    });
+  }
 
-function getTimelineSections(events) {
-  const sortedEvents = [...events].sort(
-    (a, b) => timeInMinutes(a.time) - timeInMinutes(b.time)
-  );
-  const sections = [];
+  function renderTimeline() {
+    const container = document.querySelector("#timeline-days");
+    data.schedule.forEach((day) => {
+      const daySection = element("section", "timeline-day");
+      const header = element("header", "timeline-day-header");
+      header.append(element("p", "", day.date), element("h3", "", day.title));
+      const events = element("div", "timeline-list");
 
-  sortedEvents.forEach((event) => {
-    const group = timelinePhaseGroups[event.phase] || event.phase;
-    let section = sections[sections.length - 1];
+      day.events.forEach((eventData) => {
+        const details = element("details", `timeline-event${eventData.featured ? " is-featured" : ""}`);
+        details.id = `event-${eventData.id}`;
+        const summary = element("summary");
+        const time = element("time", "timeline-time", eventData.time);
+        const main = element("div", "timeline-main");
+        const titleRow = element("div", "timeline-title-row");
+        titleRow.append(element("h4", "", eventData.title));
+        if (eventData.status !== "confirmed") titleRow.append(statusBadge(eventData.status));
+        main.append(titleRow, element("p", "", eventData.summary));
+        summary.append(time, main, element("span", "expand-mark", "＋"));
+        details.append(summary);
 
-    // Only combine adjacent groups so overlapping stages stay chronological.
-    if (!section || section.group !== group) {
-      section = { group, events: [] };
-      sections.push(section);
-    }
-    section.events.push(event);
-  });
-
-  return sections;
-}
-
-function jumpToTimelineSection(heading) {
-  const top = taskModalPanel.scrollTop +
-    heading.getBoundingClientRect().top - taskModalPanel.getBoundingClientRect().top - 24;
-  heading.focus({ preventScroll: true });
-  taskModalPanel.scrollTo({
-    top: Math.max(0, top),
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"
-  });
-}
-
-function renderFullTimeline() {
-  fullTimelineSections.replaceChildren();
-  fullTimelineNav.replaceChildren();
-  const firstHeadingByGroup = new Map();
-
-  getTimelineSections(weddingTimeline).forEach((data, index) => {
-    const group = timelineGroups[data.group] || { label: "TIMELINE", name: data.group };
-    const section = createElement("section", "full-timeline-section");
-    const header = createElement("header", "full-timeline-divider");
-    const heading = createElement("h3", "full-timeline-section-title", group.name);
-    const list = createElement("ol", "full-timeline-list");
-
-    heading.id = `full-timeline-section-${index}`;
-    heading.tabIndex = -1;
-    section.setAttribute("aria-labelledby", heading.id);
-    header.append(createElement("p", "task-modal-label", group.label), heading);
-    if (!firstHeadingByGroup.has(data.group)) {
-      firstHeadingByGroup.set(data.group, heading);
-    }
-
-    data.events.forEach((event) => {
-      const item = createElement("li", "full-timeline-item");
-      const time = createElement("time", "full-timeline-time", event.time);
-      const content = createElement("div", "full-timeline-content");
-      const related = createElement("p", "full-timeline-related");
-      time.dateTime = event.time;
-      related.append(createElement("span", "full-timeline-related-label", "相關："));
-      event.teams.forEach((id, teamIndex) => {
-        const team = teamsById.get(id);
-        if (!team) return;
-        if (teamIndex > 0) related.append(document.createTextNode(" · "));
-        related.append(createElement("span", "full-timeline-team-label", team.name));
+        if (eventData.details?.length || eventData.note) {
+          const content = element("div", "timeline-detail");
+          if (eventData.details?.length) content.append(list(eventData.details));
+          if (eventData.note) content.append(element("p", "note", eventData.note));
+          details.append(content);
+        } else {
+          details.classList.add("no-detail");
+        }
+        events.append(details);
       });
-      content.append(
-        createElement("p", "full-timeline-phase", event.phase),
-        createElement("h4", "full-timeline-event-title", event.title),
-        createElement("p", "full-timeline-place", event.place),
-        createElement("p", "full-timeline-description", event.description),
-        related
-      );
-      item.append(time, content);
-      list.append(item);
+      daySection.append(header, events);
+      container.append(daySection);
+    });
+  }
+
+  function renderManagement() {
+    const container = document.querySelector("#management-grid");
+    data.management.forEach((item) => {
+      const card = element("article", "management-card");
+      const top = element("div", "management-top");
+      top.append(element("p", "card-label", item.role), element("h4", "", personName(item.personId)));
+      card.append(top, list(item.duties));
+      if (item.note) card.append(element("p", "note", item.note));
+      container.append(card);
+    });
+  }
+
+  function renderTeams() {
+    const container = document.querySelector("#team-grid");
+    data.teams.forEach((team, index) => {
+      const details = element("details", "team-card");
+      const summary = element("summary");
+      const intro = element("div", "team-intro");
+      const count = String(index + 1).padStart(2, "0");
+      const labelRow = element("div", "team-label-row");
+      labelRow.append(element("span", "team-number", count));
+      if (team.status !== "confirmed") labelRow.append(statusBadge(team.status));
+      intro.append(labelRow, element("h4", "", team.name));
+
+      const members = element("div", "team-members");
+      if (team.leaderId) {
+        const leader = element("p");
+        leader.append(element("span", "", "負責人"), document.createTextNode(personName(team.leaderId)));
+        members.append(leader);
+      }
+      const people = element("p");
+      people.append(element("span", "", team.memberIds.length ? "人員" : "人員"), document.createTextNode(team.memberIds.length ? peopleNames(team.memberIds) : "待公布"));
+      members.append(people);
+      if (team.supportIds?.length) {
+        const support = element("p");
+        support.append(element("span", "", "機動支援"), document.createTextNode(peopleNames(team.supportIds)));
+        members.append(support);
+      }
+      if (team.candidateIds?.length) {
+        const candidates = element("p");
+        candidates.append(element("span", "", "姓名待核對"), document.createTextNode(peopleNames(team.candidateIds)));
+        members.append(candidates);
+      }
+      if (team.deadline) members.append(element("p", "team-deadline", team.deadline));
+      summary.append(intro, members, element("span", "expand-mark", "＋"));
+      details.append(summary);
+
+      const body = element("div", "team-body");
+      team.periods.forEach((period) => {
+        const section = element("section", "team-period");
+        section.append(element("h5", "", period.label), list(period.items));
+        body.append(section);
+      });
+      if (team.notes?.length) {
+        const notes = element("div", "team-notes");
+        notes.append(element("strong", "", "重要注意事項"), list(team.notes));
+        body.append(notes);
+      }
+      details.append(body);
+      container.append(details);
+    });
+  }
+
+  function renderHandoffs() {
+    const container = document.querySelector("#handoff-grid");
+    data.assignments.forEach((item) => {
+      const card = element("article", "handoff-card");
+      card.append(element("h4", "", personName(item.personId)));
+      const flow = element("p", "handoff-flow");
+      flow.append(element("span", "", item.from), element("i", "", item.trigger), element("strong", "", item.to));
+      card.append(flow, element("p", "handoff-return", item.returnTo));
+      container.append(card);
+    });
+  }
+
+  function renderVenues() {
+    document.querySelector("#ceremony-venue").textContent = data.weddingInfo.ceremonyVenue;
+    document.querySelector("#ceremony-address").textContent = data.weddingInfo.ceremonyAddress;
+    const map = document.querySelector("#ceremony-map");
+    map.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${data.weddingInfo.ceremonyVenue} ${data.weddingInfo.ceremonyAddress}`)}`;
+    map.setAttribute("aria-label", `開啟 ${data.weddingInfo.ceremonyVenue} 地圖（新分頁）`);
+
+    const container = document.querySelector("#venue-grid");
+    data.venues.forEach((venue) => {
+      const card = element("article", "venue-card");
+      card.append(element("p", "card-label", venue.purpose), element("h3", "", venue.name));
+      if (venue.capacity) card.append(element("p", "venue-capacity", venue.capacity));
+      card.append(list(venue.items));
+      if (venue.note) card.append(element("p", "note", venue.note));
+      container.append(card);
     });
 
-    section.append(header, list);
-    fullTimelineSections.append(section);
-  });
+    document.querySelector("#seating-orientation").textContent = data.seating.orientation;
+    const notes = document.querySelector("#seating-notes");
+    [
+      ["聾人保留座位", data.seating.reserved], ["親屬優先座位", data.seating.family],
+      ["一般賓客座位", data.seating.general], ["大合照場地轉換", data.seating.removal]
+    ].forEach(([title, text]) => {
+      const item = element("article");
+      item.append(element("h4", "", title), element("p", "", text));
+      notes.append(item);
+    });
+    renderFloorPlan("ceremony");
+  }
 
-  // Navigation has one target per group even when a group resumes later.
-  Object.entries(timelineGroups).forEach(([id, group]) => {
-    const heading = firstHeadingByGroup.get(id);
-    if (!heading) return;
-    const button = createElement("button", "full-timeline-nav-button", group.name);
-    button.type = "button";
-    button.setAttribute("aria-controls", heading.id);
-    button.addEventListener("click", () => jumpToTimelineSection(heading));
-    fullTimelineNav.append(button);
-  });
-}
+  function chair(x, y, kind, label) {
+    return `<g class="seat ${kind}" aria-label="${label}"><rect x="${x}" y="${y}" width="24" height="19" rx="4"></rect></g>`;
+  }
 
-function showFullTimeline() {
-  renderFullTimeline();
-  currentView = "timeline";
-  taskSearchView.hidden = true;
-  taskTeamsView.hidden = true;
-  taskScheduleView.hidden = true;
-  taskFullTimelineView.hidden = false;
-  backToSearchButton.hidden = true;
-  taskModalPanel.classList.remove("has-schedule", "has-teams");
-  taskModalPanel.classList.add("has-full-timeline");
-  taskModal.setAttribute("aria-labelledby", "full-timeline-title");
-  taskModal.setAttribute("aria-describedby", "full-timeline-description");
-  taskModalPanel.scrollTop = 0;
-}
-
-function createPersonalTask(task) {
-  const taskItem = document.createElement("li");
-  const heading = createElement("div", "personal-task-heading");
-  const time = createElement("span", "personal-task-time", task.time);
-  const titleGroup = createElement("div", "personal-task-title-group");
-  const title = createElement("h4", "personal-task-title", task.title);
-  const place = createElement("p", "personal-task-place", task.place);
-  const description = createElement(
-    "p",
-    "personal-task-description",
-    task.description
-  );
-  const notes = createElement("dl", "personal-task-notes");
-
-  taskItem.className = "personal-task-item";
-
-  titleGroup.append(title, place);
-  heading.append(time, titleGroup);
-  notes.append(
-    createTaskNote("配合", task.with),
-    createTaskNote("下一步", task.next)
-  );
-  taskItem.append(heading, description, notes);
-
-  return taskItem;
-}
-
-function renderPersonalSchedule(member) {
-  taskScheduleName.textContent = member.name;
-  taskScheduleMeta.textContent = `${member.group} · ${member.role}`;
-  personalTaskList.replaceChildren(
-    ...member.tasks.map((task) => createPersonalTask(task))
-  );
-  personalTaskList.hidden = member.tasks.length === 0;
-  personalTaskEmpty.hidden = member.tasks.length !== 0;
-  personalTableTitle.textContent = `第 ${member.table} 桌`;
-  personalTableDescription.textContent =
-    `工作完成後，請前往第 ${member.table} 桌入席。`;
-}
-
-function showPersonalSchedule(member, sourceButton) {
-  previousView = currentView;
-  previousScrollTop = taskModalPanel.scrollTop;
-  previousMemberButton = sourceButton;
-  currentView = "schedule";
-  renderPersonalSchedule(member);
-
-  taskSearchView.hidden = true;
-  taskTeamsView.hidden = true;
-  taskFullTimelineView.hidden = true;
-  taskModalPanel.classList.remove("has-full-timeline");
-  taskScheduleView.hidden = false;
-  backToSearchButton.hidden = false;
-  taskBackLabel.textContent = previousView === "teams" ? "返回工作分組" : "返回搜尋";
-  taskModalPanel.classList.add("has-schedule");
-  taskModalPanel.classList.remove("has-teams");
-  taskModal.setAttribute("aria-labelledby", "task-schedule-name");
-  taskModal.setAttribute("aria-describedby", "task-schedule-meta");
-  taskModalPanel.scrollTop = 0;
-
-  requestAnimationFrame(() => {
-    if (!isClosing && !taskModal.hidden && !taskScheduleView.hidden) {
-      backToSearchButton.focus({ preventScroll: true });
+  function renderFloorPlan(mode) {
+    const plan = document.querySelector("#floor-plan-wrap");
+    const isPhoto = mode === "photo";
+    const rows = [];
+    const firstRow = isPhoto ? 3 : 0;
+    for (let row = firstRow; row < 6; row += 1) {
+      const y = 142 + row * 39;
+      for (let side = 0; side < 2; side += 1) {
+        for (let col = 0; col < 6; col += 1) {
+          const x = 58 + side * 244 + col * 31;
+          let kind = "general";
+          let label = "一般賓客座位";
+          if (row < 3 && side === 0 && col < 4) { kind = "reserved"; label = "聾人保留座位"; }
+          else if (row < 4) { kind = "family"; label = "親屬優先座位"; }
+          rows.push(chair(x, y, kind, label));
+        }
+      }
     }
-  });
-}
+    const stageAndPhotoArea = isPhoto
+      ? `<rect class="photo-zone" x="43" y="55" width="448" height="189" rx="10"></rect>
+         <path class="stage-boundary" d="M 43 118 H 491"></path>
+         <text class="zone-label" x="267" y="91" text-anchor="middle">講台已完全清空</text>
+         <text class="zone-label" x="267" y="179" text-anchor="middle">大合照拍攝空間</text>
+         <text class="removal-label" x="267" y="201" text-anchor="middle">前三排椅子已撤除</text>`
+      : `<rect class="stage" x="43" y="55" width="448" height="63" rx="10"></rect>
+         <text class="stage-label" x="88" y="88">手語區</text>
+         <text class="stage-label" x="235" y="88">講桌</text>
+         <text class="stage-label" x="388" y="88">新人座位</text>
+         <rect class="removal-zone" x="43" y="55" width="448" height="189" rx="10"></rect>
+         <text class="removal-label" x="267" y="133" text-anchor="middle">節目後清空講台並撤除前三排</text>`;
+    const description = isPhoto
+      ? "講台用品已移走，前三排椅子已撤除，兩區合併作為大合照拍攝空間。其餘座位可供親屬及有需要的賓客等待。"
+      : "以賓客面向講台為準，聾人保留座位在最左側靠牆四席、連續前三排。正式婚禮節目後完全清空講台並撤除前三排椅子。";
 
-function showTaskSearch(options = {}) {
-  const { focus = true } = options;
+    plan.innerHTML = `<svg class="floor-plan" viewBox="0 0 534 430" role="img" aria-labelledby="plan-title" aria-describedby="plan-desc">
+      <title id="plan-title">聚會所${isPhoto ? "大合照期間" : "婚禮期間"}配置示意</title>
+      <desc id="plan-desc">${description}詢問處位於聚會所後方，提供資訊及接收禮物。</desc>
+      <rect class="room" x="18" y="18" width="498" height="394" rx="18"></rect>
+      <text class="orientation-label" x="267" y="40" text-anchor="middle">賓客面向講台</text>
+      ${stageAndPhotoArea}
+      <line class="aisle-line" x1="267" y1="${isPhoto ? 246 : 140}" x2="267" y2="371"></line><text class="aisle-label" x="267" y="350" text-anchor="middle">中央走道</text>
+      ${rows.join("")}
+      <rect class="desk" x="375" y="373" width="108" height="26" rx="6"></rect><text class="desk-label" x="429" y="391" text-anchor="middle">詢問處・禮物</text>
+      <text class="wall-label" x="32" y="260" transform="rotate(-90 32 260)" text-anchor="middle">最靠左側牆壁</text>
+    </svg><p class="diagram-disclaimer">${data.seating.disclaimer}</p>`;
+  }
 
-  taskScheduleView.hidden = true;
-  taskTeamsView.hidden = true;
-  taskFullTimelineView.hidden = true;
-  taskModalPanel.classList.remove("has-full-timeline");
-  taskSearchView.hidden = false;
-  currentView = "search";
-  backToSearchButton.hidden = true;
-  taskModalPanel.classList.remove("has-schedule");
-  taskModalPanel.classList.remove("has-teams");
-  taskModal.setAttribute("aria-labelledby", "task-modal-title");
-  taskModal.setAttribute("aria-describedby", "task-modal-description");
-  taskModalPanel.scrollTop = 0;
-
-  if (focus) {
-    requestAnimationFrame(() => {
-      if (!isClosing && !taskModal.hidden && !taskSearchView.hidden) {
-        taskSearchInput.focus({ preventScroll: true });
-      }
+  function setupDiagramTabs() {
+    document.querySelectorAll(".diagram-tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".diagram-tab").forEach((item) => {
+          const active = item === button;
+          item.classList.toggle("is-active", active);
+          item.setAttribute("aria-pressed", String(active));
+        });
+        renderFloorPlan(button.dataset.diagram);
+      });
     });
   }
-}
 
-function showTeams(options = {}) {
-  const { focus = true } = options;
-
-  currentView = "teams";
-  taskFullTimelineView.hidden = true;
-  taskModalPanel.classList.remove("has-full-timeline");
-  taskSearchView.hidden = true;
-  taskScheduleView.hidden = true;
-  taskTeamsView.hidden = false;
-  backToSearchButton.hidden = true;
-  taskModalPanel.classList.remove("has-schedule");
-  taskModalPanel.classList.add("has-teams");
-  taskModal.setAttribute("aria-labelledby", "task-teams-title");
-  taskModal.setAttribute("aria-describedby", "task-teams-description");
-  taskModalPanel.scrollTop = 0;
-
-  if (focus) {
-    requestAnimationFrame(() => {
-      if (!isClosing && !taskModal.hidden && currentView === "teams") {
-        taskTeamsTitle.focus({ preventScroll: true });
-      }
-    });
-  }
-}
-
-function returnToPreviousView() {
-  if (previousView === "teams") {
-    showTeams({ focus: false });
-    taskModalPanel.scrollTop = previousScrollTop;
-    previousMemberButton?.focus({ preventScroll: true });
-  } else {
-    showTaskSearch();
-  }
-}
-
-function renderSearchResults() {
-  const searchTerm = taskSearchInput.value.trim();
-
-  taskSearchResults.replaceChildren();
-
-  if (!searchTerm) {
-    return;
-  }
-
-  const matches = staffMembers.filter((member) =>
-    member.name.includes(searchTerm)
-  );
-
-  if (matches.length === 0) {
-    const noResultsMessage = createElement(
-      "p",
-      "task-no-results",
-      "找不到這個名字"
-    );
-
-    taskSearchResults.append(noResultsMessage);
-
-    return;
-  }
-
-  matches.forEach((member) => {
-    const resultButton = document.createElement("button");
-    const resultText = document.createElement("span");
-    const resultName = createElement(
-      "span",
-      "task-result-name",
-      member.name
-    );
-    const resultGroup = createElement(
-      "span",
-      "task-result-team",
-      member.group
-    );
-    const resultArrow = createElement("span", "task-result-arrow", "→");
-
-    resultButton.className = "task-result-item";
-    resultButton.type = "button";
-    resultButton.setAttribute(
-      "aria-label",
-      `${member.name}，${member.group}，查看個人工作安排`
-    );
-    resultButton.addEventListener("click", () => {
-      showPersonalSchedule(member, resultButton);
+  function renderProgram() {
+    document.querySelector("#ceremony-range").textContent = `${data.ceremony.start} 開始・${data.ceremony.targetEnd}`;
+    const ceremonyList = document.querySelector("#ceremony-list");
+    data.ceremony.items.forEach((item) => {
+      const li = element("li");
+      const content = element("div");
+      const title = element("h4", "", item.title);
+      if (item.status !== "confirmed") title.append(statusBadge(item.status));
+      content.append(title);
+      if (item.detail) content.append(element("p", "", item.detail));
+      li.append(content);
+      ceremonyList.append(li);
     });
 
-    resultArrow.setAttribute("aria-hidden", "true");
+    const cameraGrid = document.querySelector("#camera-grid");
+    data.cameraPositions.forEach((camera) => {
+      const card = element("article", "camera-card");
+      const head = element("div", "camera-head");
+      head.append(element("span", "camera-id", camera.id), element("h4", "", camera.operatorId ? personName(camera.operatorId) : camera.operator));
+      card.append(head, element("p", "camera-meta", `${camera.device}・${camera.place}`), element("p", "", camera.work));
+      cameraGrid.append(card);
+    });
 
-    resultText.append(resultName, resultGroup);
-    resultButton.append(resultText, resultArrow);
-    taskSearchResults.append(resultButton);
-  });
-}
-
-function openTaskModal(view = "search", opener = openTaskModalButton) {
-  clearTimeout(closeTimer);
-  isClosing = false;
-  pageScrollPosition = window.scrollY;
-
-  taskModal.hidden = false;
-  modalOpener = opener;
-  modalOpener.setAttribute("aria-expanded", "true");
-  previousView = view;
-  previousMemberButton = null;
-  if (view === "teams") {
-    showTeams({ focus: false });
-  } else if (view === "timeline") {
-    showFullTimeline();
-  } else {
-    showTaskSearch({ focus: false });
-  }
-  document.body.style.top = `-${pageScrollPosition}px`;
-  document.body.classList.add("modal-open");
-
-  requestAnimationFrame(() => {
-    if (isClosing || taskModal.hidden) return;
-    taskModal.classList.add("is-open");
-    const focusTarget = view === "timeline" ? fullTimelineTitle :
-      view === "teams" ? taskTeamsTitle : taskSearchInput;
-    focusTarget.focus({ preventScroll: true });
-  });
-}
-
-function closeTaskModal() {
-  if (taskModal.hidden || isClosing) {
-    return;
+    const table = element("table");
+    const thead = element("thead");
+    const tr = element("tr");
+    ["婚禮環節", "畫面", "音訊及其他操作"].forEach((heading) => tr.append(element("th", "", heading)));
+    thead.append(tr);
+    const tbody = element("tbody");
+    data.avCues.forEach((cue) => {
+      const row = element("tr");
+      [["婚禮環節", cue.moment], ["畫面", cue.video], ["音訊及其他操作", cue.audio]].forEach(([label, value]) => {
+        const cell = element("td", "", value);
+        cell.dataset.label = label;
+        row.append(cell);
+      });
+      tbody.append(row);
+    });
+    table.append(thead, tbody);
+    document.querySelector("#av-cues").append(table);
+    document.querySelector("#av-checklist").append(...data.avChecklist.map((item) => element("li", "", item)));
+    document.querySelector("#equipment-list").append(...data.equipment.map((item) => element("li", "", item)));
   }
 
-  isClosing = true;
-  taskModal.classList.remove("is-open");
-  modalOpener.setAttribute("aria-expanded", "false");
-
-  closeTimer = window.setTimeout(() => {
-    taskModal.hidden = true;
-    showTaskSearch({ focus: false });
-    document.body.classList.remove("modal-open");
-    document.body.style.top = "";
-    window.scrollTo(0, pageScrollPosition);
-    modalOpener.focus({ preventScroll: true });
-    isClosing = false;
-  }, 300);
-}
-
-function keepFocusInsideModal(event) {
-  if (event.key !== "Tab" || taskModal.hidden) {
-    return;
+  function renderPhotos() {
+    document.querySelector("#group-photo-photographer").textContent = personName(data.photoGroups.photographerId);
+    document.querySelector("#group-photo-host").textContent = data.photoGroups.host;
+    const message = document.querySelector("#photo-groups-message");
+    message.append(statusBadge(data.photoGroups.status), element("strong", "", data.photoGroups.message));
+    document.querySelector("#group-photo-coordination").textContent = data.photoGroups.coordination;
+    const steps = document.querySelector("#group-photo-steps");
+    data.photoGroups.steps.forEach((step) => steps.append(element("li", "", step)));
   }
 
-  const focusableElements = taskModal.querySelectorAll(
-    'button:not([disabled]):not([hidden]), input:not([disabled]):not([hidden]), [tabindex]:not([tabindex="-1"]):not([hidden])'
-  );
-  const visibleFocusableElements = [...focusableElements].filter(
-    (element) => element.offsetParent !== null
-  );
-  const firstElement = visibleFocusableElements[0];
-  const lastElement = visibleFocusableElements[
-    visibleFocusableElements.length - 1
-  ];
+  function renderCleanup() {
+    const times = document.querySelector("#cleanup-times");
+    data.cleanup.keyTimes.forEach((item) => {
+      const block = element("div");
+      block.append(element("strong", "", item.time), element("span", "", item.label));
+      times.append(block);
+    });
 
-  if (!firstElement || !lastElement) {
-    return;
+    const grid = document.querySelector("#cleanup-grid");
+    data.cleanup.areas.forEach((area) => {
+      const card = element("article", "cleanup-card");
+      const head = element("div", "cleanup-head");
+      head.append(element("h3", "", area.name), element("p", "", `負責人｜${personName(area.leaderId)}`));
+      card.append(head, list(area.items), element("p", "note", area.note));
+      grid.append(card);
+    });
+
+    const logistics = document.querySelector("#logistics-grid");
+    data.cleanup.logistics.forEach((item) => {
+      const card = element("article", "logistics-card");
+      const head = element("div");
+      head.append(element("h4", "", item.title));
+      if (item.status !== "confirmed") head.append(statusBadge(item.status));
+      card.append(head, element("p", "", item.text));
+      logistics.append(card);
+    });
+
+    document.querySelector("#reception-title").textContent = data.reception.venue;
+    document.querySelector("#reception-hall").textContent = data.reception.hall;
+    data.reception.times.forEach((item) => {
+      const time = element("div");
+      time.append(element("strong", "", item.time), element("span", "", item.label));
+      if (item.status) time.append(statusBadge(item.status));
+      document.querySelector("#reception-times").append(time);
+    });
+    document.querySelector("#reception-team").textContent = data.reception.advanceTeam;
+    document.querySelector("#reception-tasks").append(...data.reception.advanceTasks.map((item) => element("li", "", item)));
+    document.querySelector("#reception-note").textContent = data.reception.note;
   }
 
-  const focusIsOutsideControls = !visibleFocusableElements.includes(document.activeElement);
-  if (event.shiftKey && (document.activeElement === firstElement || focusIsOutsideControls)) {
-    event.preventDefault();
-    lastElement.focus();
-  } else if (!event.shiftKey && (document.activeElement === lastElement || focusIsOutsideControls)) {
-    event.preventDefault();
-    firstElement.focus();
-  }
-}
-
-renderTeams();
-
-openTaskModalButton.addEventListener("click", () => openTaskModal());
-openTeamsModalButton.addEventListener("click", () => openTaskModal("teams", openTeamsModalButton));
-openTimelineModalButton.addEventListener("click", () => openTaskModal("timeline", openTimelineModalButton));
-closeTaskModalButton.addEventListener("click", closeTaskModal);
-backToSearchButton.addEventListener("click", returnToPreviousView);
-taskSearchInput.addEventListener("input", renderSearchResults);
-
-taskModal.addEventListener("click", (event) => {
-  if (event.target === taskModal) {
-    closeTaskModal();
-  }
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !taskModal.hidden) {
-    closeTaskModal();
+  function setupDetails() {
+    document.querySelectorAll("details").forEach((details) => {
+      details.addEventListener("toggle", () => {
+        const mark = details.querySelector(":scope > summary .expand-mark");
+        if (mark) mark.textContent = details.open ? "−" : "＋";
+      });
+    });
   }
 
-  keepFocusInsideModal(event);
-});
+  function setupNavState() {
+    const links = [...document.querySelectorAll(".nav-scroll a")];
+    const sections = links.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+    if (!("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        links.forEach((link) => link.classList.toggle("is-current", link.getAttribute("href") === `#${entry.target.id}`));
+      });
+    }, { rootMargin: "-25% 0px -65%", threshold: 0 });
+    sections.forEach((section) => observer.observe(section));
+  }
+
+  validateData();
+  renderHero();
+  renderTimeline();
+  renderManagement();
+  renderTeams();
+  renderHandoffs();
+  renderVenues();
+  renderProgram();
+  renderPhotos();
+  renderCleanup();
+  setupDiagramTabs();
+  setupDetails();
+  setupNavState();
+})();

@@ -1,540 +1,194 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
-
 <head>
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>子靖 ＆ 勤萱｜婚禮工作人員</title>
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f2e9">
+  <meta name="description" content="子靖與勤萱 2026 年 12 月 26 日婚禮工作指南">
+  <title>子靖＆勤萱｜婚禮工作指南</title>
   <link rel="stylesheet" href="style.css">
+  <script src="data.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
-
 <body>
+  <a class="skip-link" href="#main-content">跳至主要內容</a>
 
-  <!-- HERO -->
-  <header class="hero">
-
-    <div class="hero-inner">
-
-      <p class="eyebrow">
-        WEDDING CREW
-      </p>
-
-      <h1>
-        子靖 ＆ 勤萱
-      </h1>
-
-      <div class="hero-line"></div>
-
-      <p class="date">
-        2026 · 12 · 26
-      </p>
-
-      <p class="hero-title">
-        婚禮工作人員指南
-      </p>
-
-      <p class="hero-description">
-        謝謝你們一起幫忙完成這重要的一天。<br>
-        這裡整理了當天需要知道的工作安排與資訊。
-      </p>
-
-      <a href="#staff-tools" class="scroll-link">
-        查看工作安排
-        <span>↓</span>
-      </a>
-
+  <nav class="site-nav" aria-label="主要導覽">
+    <a class="brand" href="#top" aria-label="回到頁首">子靖＆勤萱</a>
+    <div class="nav-scroll">
+      <a href="#schedule">總流程</a>
+      <a href="#teams">工作安排</a>
+      <a href="#venues">場地座位</a>
+      <a href="#program">節目影音</a>
+      <a href="#photos">攝影合照</a>
+      <a href="#cleanup">撤場婚宴</a>
     </div>
+  </nav>
 
+  <header class="hero" id="top">
+    <div class="hero-inner">
+      <p class="hero-date" id="hero-date"></p>
+      <h1><span id="hero-couple"></span><small id="hero-title"></small></h1>
+      <p class="hero-message" id="hero-message"></p>
+      <div class="hero-divider" aria-hidden="true"></div>
+      <div class="key-times" id="key-times" aria-label="婚禮當日重要時間"></div>
+      <a class="primary-link" href="#guide">查看工作指南</a>
+    </div>
   </header>
 
-
-  <main>
-
-    <!-- INTRO -->
-    <section class="intro section">
-
-      <p class="section-label">
-        FOR OUR WEDDING CREW
-      </p>
-
-      <h2>
-        謝謝有你們
-      </h2>
-
-      <p class="intro-text">
-        婚禮當天有很多不同的工作需要彼此配合。<br>
-        我們把重要的時間、地點與工作內容整理在這裡，
-        讓大家可以快速找到自己需要的資訊。
-      </p>
-
+  <main id="main-content">
+    <section class="section guide" id="guide" aria-labelledby="guide-title">
+      <div class="section-heading">
+        <p class="section-kicker">快速入口</p>
+        <h2 id="guide-title">今天需要的資訊，都在這裡</h2>
+        <p>依照工作階段快速前往；不需要搜尋姓名。</p>
+      </div>
+      <div class="guide-grid">
+        <a class="guide-card" href="#schedule"><span>01</span><div><h3>當日總流程</h3><p>工作人員抵達、婚禮、大合照、撤場及婚宴。</p></div></a>
+        <a class="guide-card" href="#teams"><span>02</span><div><h3>各組工作安排</h3><p>所有人員、各時段職責與工作轉換。</p></div></a>
+        <a class="guide-card" href="#venues"><span>03</span><div><h3>場地布置及座位</h3><p>聚會所、走廊、集會所與座位配置。</p></div></a>
+        <a class="guide-card" href="#program"><span>04</span><div><h3>婚禮節目及影音</h3><p>正式節目、直播機位與影音操作提示。</p></div></a>
+        <a class="guide-card" href="#photos"><span>05</span><div><h3>攝影及大合照</h3><p>紀錄攝影、正式大合照、背板與照片列印。</p></div></a>
+        <a class="guide-card" href="#cleanup"><span>06</span><div><h3>撤場及婚宴</h3><p>各區撤收、離場期限與婚宴安排。</p></div></a>
+      </div>
     </section>
 
+    <section class="section section-tinted" id="schedule" aria-labelledby="schedule-title">
+      <div class="section-heading split-heading">
+        <div><p class="section-kicker">01</p><h2 id="schedule-title">當日總流程</h2></div>
+        <p>主要時間直接顯示；點擊項目可展開詳細工作。標示「暫定」或「待公布」的內容尚未定案。</p>
+      </div>
+      <div class="timeline-days" id="timeline-days"></div>
+    </section>
 
-    <!-- MAIN TOOLS -->
-    <section
-      class="section tools-section"
-      id="staff-tools"
-    >
-
-      <p class="section-label">
-        STAFF GUIDE
-      </p>
-
-      <h2>
-        工作資訊
-      </h2>
-
-      <p class="section-description">
-        選擇你現在需要查看的內容。
-      </p>
-
-
-      <div class="tool-grid">
-
-        <button
-          class="tool-card"
-          id="open-task-modal"
-          type="button"
-          aria-haspopup="dialog"
-          aria-controls="task-modal"
-          aria-expanded="false"
-        >
-
-          <span class="tool-number">
-            01
-          </span>
-
-          <div class="tool-content">
-
-            <p class="tool-label">
-              MY TASKS
-            </p>
-
-            <h3>
-              找我的工作
-            </h3>
-
-            <p>
-              輸入姓名，快速查看自己的時間、
-              地點與工作內容。
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </button>
-
-
-        <button
-          class="tool-card"
-          id="open-teams-modal"
-          type="button"
-          aria-haspopup="dialog"
-          aria-controls="task-modal"
-          aria-expanded="false"
-        >
-
-          <span class="tool-number">
-            02
-          </span>
-
-          <div class="tool-content">
-
-            <p class="tool-label">
-              TEAMS
-            </p>
-
-            <h3>
-              工作分組
-            </h3>
-
-            <p>
-              查看各組工作人員、
-              工作內容與彼此的分工。
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </button>
-
-
-        <button
-          class="tool-card"
-          id="open-timeline-modal"
-          type="button"
-          aria-haspopup="dialog"
-          aria-controls="task-modal"
-          aria-expanded="false"
-        >
-
-          <span class="tool-number">
-            03
-          </span>
-
-          <div class="tool-content">
-
-            <p class="tool-label">
-              TIMELINE
-            </p>
-
-            <h3>
-              今日總流程
-            </h3>
-
-            <p>
-              查看婚禮與婚宴當天的重要時間點。
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </button>
-
-
-        <button class="tool-card" type="button">
-
-          <span class="tool-number">
-            04
-          </span>
-
-          <div class="tool-content">
-
-            <p class="tool-label">
-              LOCATIONS
-            </p>
-
-            <h3>
-              重要地點
-            </h3>
-
-            <p>
-              查看集合地點、
-              婚禮場地與婚宴場地資訊。
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </button>
-
+    <section class="section" id="teams" aria-labelledby="teams-title">
+      <div class="section-heading split-heading">
+        <div><p class="section-kicker">02</p><h2 id="teams-title">各組工作安排</h2></div>
+        <p>人員可同時出現在不同組別；工作轉換會在卡片及下方交接提示中標示。</p>
       </div>
 
+      <div class="subsection-heading">
+        <h3>現場協調</h3>
+        <p>遇到狀況時，依場地與工作性質聯繫對應負責人。</p>
+      </div>
+      <div class="management-grid" id="management-grid"></div>
+
+      <div class="subsection-heading team-heading">
+        <h3>工作組別</h3>
+        <p>點擊卡片即可查看各時段工作及注意事項。</p>
+      </div>
+      <div class="team-grid" id="team-grid"></div>
+
+      <aside class="handoff-panel" aria-labelledby="handoff-title">
+        <div class="subsection-heading"><h3 id="handoff-title">兼任工作交接</h3><p>以下人員在特定時段會切換崗位。</p></div>
+        <div class="handoff-grid" id="handoff-grid"></div>
+      </aside>
     </section>
 
+    <section class="section section-tinted" id="venues" aria-labelledby="venues-title">
+      <div class="section-heading split-heading">
+        <div><p class="section-kicker">03</p><h2 id="venues-title">場地布置及座位</h2></div>
+        <div class="venue-address"><strong id="ceremony-venue"></strong><span id="ceremony-address"></span><a id="ceremony-map" target="_blank" rel="noreferrer">開啟地圖</a></div>
+      </div>
+      <div class="venue-grid" id="venue-grid"></div>
 
-    <!-- BASIC TIMELINE -->
-    <section class="section timeline-section">
+      <div class="subsection-heading seating-heading">
+        <h3>聚會所座位配置</h3>
+        <p id="seating-orientation"></p>
+      </div>
+      <div class="diagram-tabs" role="group" aria-label="場地配置圖切換">
+        <button class="diagram-tab is-active" type="button" data-diagram="ceremony" aria-pressed="true">婚禮期間</button>
+        <button class="diagram-tab" type="button" data-diagram="photo" aria-pressed="false">大合照期間</button>
+      </div>
+      <div class="floor-plan-wrap" id="floor-plan-wrap"></div>
+      <div class="legend" aria-label="場地圖例">
+        <span><i class="legend-box reserved"></i>聾人保留座位</span>
+        <span><i class="legend-box family"></i>親屬優先座位</span>
+        <span><i class="legend-box general"></i>一般賓客座位</span>
+        <span><i class="legend-box removal"></i>大合照清空範圍</span>
+      </div>
+      <div class="seating-notes" id="seating-notes"></div>
+    </section>
 
-      <p class="section-label">
-        WEDDING DAY
-      </p>
-
-      <h2>
-        今日重要時間
-      </h2>
-
-      <div class="timeline">
-
-        <div class="timeline-item">
-
-          <div class="timeline-time">
-            13:30
-          </div>
-
-          <div class="timeline-content">
-            <h3>婚禮開放入場</h3>
-            <p>竹東王國聚會所</p>
-          </div>
-
+    <section class="section" id="program" aria-labelledby="program-title">
+      <div class="section-heading split-heading">
+        <div><p class="section-kicker">04</p><h2 id="program-title">婚禮節目及影音</h2></div>
+        <p>14:30 正式開始；15:15–15:20 是目標結束時間，不是保證時間。</p>
+      </div>
+      <div class="program-layout">
+        <article class="content-card ceremony-card">
+          <div class="card-title-row"><div><p class="card-label">正式流程</p><h3>婚禮節目順序</h3></div><strong id="ceremony-range"></strong></div>
+          <ol class="ceremony-list" id="ceremony-list"></ol>
+        </article>
+        <div>
+          <div class="subsection-heading compact"><h3>Zoom 直播機位</h3><p>由子奕手動切換焦點視訊。</p></div>
+          <div class="camera-grid" id="camera-grid"></div>
         </div>
-
-
-        <div class="timeline-item">
-
-          <div class="timeline-time">
-            14:30
-          </div>
-
-          <div class="timeline-content">
-            <h3>婚禮開始</h3>
-            <p>婚禮儀式正式開始</p>
-          </div>
-
-        </div>
-
-          <div class="timeline-item">
-
-             <div class="timeline-time">
-                 16:30
-                </div>
-
-            <div class="timeline-content">
-            <h3>婚禮結束</h3>
-            <p>婚禮工作人員依安排進行收尾與轉場</p>
-            </div>
-
-        </div>
-
-        <div class="timeline-item">
-
-          <div class="timeline-time">
-            17:00
-          </div>
-
-          <div class="timeline-content">
-            <h3>婚宴開放入場</h3>
-            <p>晶宴會館・星辰劇場</p>
-          </div>
-
-        </div>
-
-
-        <div class="timeline-item">
-
-          <div class="timeline-time">
-            18:00
-          </div>
-
-          <div class="timeline-content">
-            <h3>婚宴開始</h3>
-            <p>工作人員依各組安排進行工作</p>
-          </div>
-
-        </div>
-
-
-        <div class="timeline-item">
-
-          <div class="timeline-time">
-            20:30
-          </div>
-
-          <div class="timeline-content">
-            <h3>送客</h3>
-            <p>婚宴結束</p>
-          </div>
-
-        </div>
-
       </div>
 
+      <div class="subsection-heading table-heading">
+        <h3>影音執行提示</h3>
+        <p>手機版以資訊卡顯示，桌面版以三欄對照。</p>
+      </div>
+      <div class="responsive-table" id="av-cues"></div>
+      <details class="detail-panel av-checklist">
+        <summary>影音測試注意事項</summary>
+        <div class="detail-content"><ul id="av-checklist"></ul></div>
+      </details>
+      <details class="detail-panel">
+        <summary>設備配置摘要</summary>
+        <div class="detail-content"><ul id="equipment-list"></ul></div>
+      </details>
+      <div class="status-note"><span class="status status-pending">待公布</span><p>林沛賢是否正式負責婚禮結束後的線上影片播放，以及 Zoom 結束時間，尚未最終確認。</p></div>
     </section>
 
+    <section class="section section-tinted" id="photos" aria-labelledby="photos-title">
+      <div class="section-heading split-heading">
+        <div><p class="section-kicker">05</p><h2 id="photos-title">攝影及大合照</h2></div>
+        <p>紀錄攝影與 Zoom 直播攝影是不同工作；拍攝時請避免長時間阻擋賓客視線。</p>
+      </div>
+      <div class="photo-grid">
+        <article class="content-card featured-card">
+          <p class="card-label">正式大合照</p><h3>聚會所</h3>
+          <dl class="fact-list"><div><dt>攝影師</dt><dd id="group-photo-photographer"></dd></div><div><dt>主持人</dt><dd id="group-photo-host"></dd></div></dl>
+          <div class="pending-callout" id="photo-groups-message"></div>
+          <p class="note" id="group-photo-coordination"></p>
+          <ol id="group-photo-steps" aria-label="大合照執行流程"></ol>
+        </article>
+        <article class="content-card">
+          <p class="card-label">活動紀錄</p><h3>兩區機動攝影</h3>
+          <div class="person-duty"><strong>友蕾</strong><p>聚會所婚禮紀錄與正式大合照。</p></div>
+          <div class="person-duty"><strong>信恩</strong><p>集會所自然跟拍、互動抓拍與現場紀錄。</p></div>
+        </article>
+        <article class="content-card">
+          <p class="card-label">背板服務</p><h3>拍照及照片列印</h3>
+          <div class="person-duty"><strong>孟楷</strong><p>引導、構圖、拍攝並交付照片。</p></div>
+          <div class="person-duty"><strong>孟萱</strong><p>列印、發放照片及補充耗材。</p></div>
+          <ul><li>每組一張照片。</li><li>賓客不必等待新人即可先拍照。</li><li>服務時間待公布，背板 16:30 前撤收完成。</li></ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="cleanup" aria-labelledby="cleanup-title">
+      <div class="section-heading split-heading">
+        <div><p class="section-kicker">06</p><h2 id="cleanup-title">撤場及婚宴</h2></div>
+        <p>新人 16:30 離場後不再負責現場撤收；各組收拾自己布置的物品，由場地負責人統一確認。</p>
+      </div>
+      <div class="deadline-strip" id="cleanup-times"></div>
+      <div class="cleanup-grid" id="cleanup-grid"></div>
+      <div class="logistics-grid" id="logistics-grid"></div>
+
+      <article class="reception-panel" aria-labelledby="reception-title">
+        <div><p class="card-label">婚宴安排</p><h3 id="reception-title"></h3><p class="reception-hall" id="reception-hall"></p></div>
+        <div class="reception-times" id="reception-times"></div>
+        <div class="reception-advance"><span class="status status-pending">待公布</span><h4>婚宴先遣人員</h4><p id="reception-team"></p><ul id="reception-tasks"></ul><p id="reception-note"></p></div>
+      </article>
+    </section>
   </main>
 
-
-  <!-- MY TASKS MODAL -->
-  <div
-    class="task-modal"
-    id="task-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="task-modal-title"
-    aria-describedby="task-modal-description"
-    hidden
-  >
-
-    <div class="task-modal-panel">
-
-      <button
-        class="task-modal-close"
-        id="close-task-modal"
-        type="button"
-        aria-label="關閉工作資訊視窗"
-      >
-        <span aria-hidden="true">×</span>
-      </button>
-
-      <button
-        class="task-back-button"
-        id="back-to-task-search"
-        type="button"
-        hidden
-      >
-        <span aria-hidden="true">←</span>
-        <span id="task-back-label">返回搜尋</span>
-      </button>
-
-      <div
-        class="task-modal-view task-search-view"
-        id="task-search-view"
-      >
-
-        <p class="task-modal-label">
-          MY TASKS
-        </p>
-
-        <h2 id="task-modal-title">
-          找我的工作
-        </h2>
-
-        <p
-          class="task-modal-description"
-          id="task-modal-description"
-        >
-          輸入你的姓名，查看婚禮當天的工作安排。
-        </p>
-
-        <label class="visually-hidden" for="task-name-search">
-          姓名
-        </label>
-
-        <input
-          class="task-search-input"
-          id="task-name-search"
-          type="search"
-          placeholder="輸入姓名"
-          aria-label="輸入姓名搜尋工作安排"
-          autocomplete="off"
-        >
-
-        <div
-          class="task-search-results"
-          id="task-search-results"
-          aria-live="polite"
-        ></div>
-
-      </div>
-
-      <div
-        class="task-modal-view task-teams-view"
-        id="task-teams-view"
-        hidden
-      >
-
-        <p class="task-modal-label">TEAMS</p>
-
-        <h2 id="task-teams-title" tabindex="-1">工作分組</h2>
-
-        <p class="task-modal-description" id="task-teams-description">
-          查看各組工作人員、分工與共同安排。
-        </p>
-
-        <div class="team-card-list" id="team-card-list"></div>
-
-      </div>
-
-      <div
-        class="task-modal-view task-full-timeline-view"
-        id="task-full-timeline-view"
-        hidden
-      >
-
-        <p class="task-modal-label">FULL TIMELINE</p>
-
-        <h2 id="full-timeline-title" tabindex="-1">完整工作流程</h2>
-
-        <p class="task-modal-description" id="full-timeline-description">
-          依時間查看婚禮當天的重要流程與工作人員安排。
-        </p>
-
-        <nav
-          class="full-timeline-nav"
-          id="full-timeline-nav"
-          aria-label="完整工作流程快速跳轉"
-        ></nav>
-
-        <div class="full-timeline-sections" id="full-timeline-sections"></div>
-
-      </div>
-
-      <div
-        class="task-modal-view task-schedule-view"
-        id="task-schedule-view"
-        hidden
-      >
-
-        <header class="personal-schedule-header">
-
-          <p class="task-modal-label">
-            MY SCHEDULE
-          </p>
-
-          <h2 id="task-schedule-name"></h2>
-
-          <p
-            class="task-schedule-meta"
-            id="task-schedule-meta"
-          ></p>
-
-        </header>
-
-        <section
-          class="personal-tasks"
-          aria-labelledby="personal-tasks-title"
-        >
-
-          <h3 id="personal-tasks-title">
-            我的工作
-          </h3>
-
-          <ol
-            class="personal-task-list"
-            id="personal-task-list"
-          ></ol>
-
-          <p class="personal-task-empty" id="personal-task-empty" hidden>
-            詳細工作安排尚未加入。
-          </p>
-
-        </section>
-
-        <section
-          class="personal-table-card"
-          aria-labelledby="personal-table-title"
-        >
-
-          <p class="task-modal-label">
-            MY TABLE
-          </p>
-
-          <h3 id="personal-table-title"></h3>
-
-          <p id="personal-table-description"></p>
-
-        </section>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
   <footer>
-
-    <p class="footer-name">
-      子靖 ＆ 勤萱
-    </p>
-
-    <p>
-      2026.12.26 · 新竹
-    </p>
-
+    <p>子靖＆勤萱・婚禮工作指南</p>
+    <a href="#top">回到頁首</a>
   </footer>
-
-
-  <script src="script.js"></script>
-
 </body>
-
 </html>
