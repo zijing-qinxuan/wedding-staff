@@ -609,11 +609,11 @@
     cached = null;
     mount(weddingData);
   }
-  function showStatus(offline = false) {
+  function showStatus(failure = "") {
     const published = cached ? "更新時間 " + new Date(cached.updatedAt).toLocaleString("zh-TW", {
       timeZone: "Asia/Taipei", hour12: false
     }) : "備用資料更新 " + staffFallbackUpdatedOn;
-    status.textContent = offline ? "無法取得最新資料，顯示" + (cached ? "最近快取・" : "") + published : published;
+    status.textContent = failure ? failure + "，顯示" + (cached ? "最近快取・" : "") + published : published;
   }
   showStatus();
   if (source.preview) {
@@ -637,10 +637,10 @@
         cached = latest;
         source.remember(latest);
         showStatus();
-      } catch {
+      } catch (error) {
         const fallback = previous?.data || weddingData;
         if (data !== fallback) mount(fallback);
-        showStatus(true);
+        showStatus(error?.code === "PUBLISHED_UNAVAILABLE" ? error.message : "無法取得最新資料");
       } finally {
         checkedAt = Date.now();
         refresh.disabled = false;

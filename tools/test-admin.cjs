@@ -206,6 +206,44 @@ test("the server checks Google identity for every admin operation", () => {
   assert.equal(server.json().ok, false);
 });
 
+test("public reader distinguishes a no-data reply from a failed connection", async () => {
+  const server = simulate();
+  const window = {};
+  window.parent = window;
+  let offline = false;
+  vm.runInNewContext(read("site-config.js"), { window });
+  const { publishedUrl, adminUrl } = window.weddingStaffConfig;
+  assert.notEqual(publishedUrl, adminUrl);
+  for (const url of [publishedUrl, adminUrl]) {
+    assert.match(url, /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/);
+  }
+  vm.runInNewContext(read("public-data.js"), {
+    window,
+    location: { hash: "" },
+    URL,
+    AbortController,
+    setTimeout: () => {},
+    clearTimeout: () => {},
+    crypto: require("node:crypto").webcrypto,
+    fetch: async () => {
+      if (offline) throw new TypeError("network unavailable");
+      return { ok: true, json: async () => server.json() };
+    },
+    document: {
+      createElement: () => ({ remove() {} }),
+      head: { append: (script) => script.onerror() }
+    }
+  });
+  const source = window.weddingStaffSource;
+  await assert.rejects(source.getLatest(), { code: "PUBLISHED_UNAVAILABLE" });
+  const state = server.rpc("initialize", { revision: 0, data: newDraft() });
+  await assert.rejects(source.getLatest(), { code: "PUBLISHED_UNAVAILABLE" });
+  server.rpc("publish", { revision: state.revision });
+  assert.equal((await source.getLatest()).version, 2);
+  offline = true;
+  await assert.rejects(source.getLatest(), (error) => !error.code && error.message === "無法讀取發布資料");
+});
+
 test("publish, draft edits, conflict, backup export, and restore are distinct", () => {
   const server = simulate();
   assert.equal(server.rpc("load").revision, 0);

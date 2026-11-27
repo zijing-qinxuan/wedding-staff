@@ -84,7 +84,12 @@
   async function getLatest() {
     if (!enabled || preview) throw new Error("公開端點未設定");
     const payload = await readJson().catch(readJsonp);
-    if (!published(payload)) throw new Error("尚無可讀取的發布資料");
+    if (payload?.ok === false && payload.error === "目前無法取得已發布資料。") {
+      const error = new Error("公開端已回應，暫無可讀取的發布資料");
+      error.code = "PUBLISHED_UNAVAILABLE";
+      throw error;
+    }
+    if (!published(payload)) throw new Error("公開端回應格式不符");
     return payload;
   }
 
