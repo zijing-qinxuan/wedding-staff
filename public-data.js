@@ -97,13 +97,23 @@
     return preview ? Promise.reject(new Error("預覽模式")) : readPublished();
   }
 
+  function sameJson(left, right) {
+    if (left === right) return true;
+    if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+    if (Array.isArray(left) !== Array.isArray(right)) return false;
+    // Apps Script RPC can reorder object keys. Array positions remain significant.
+    const keys = Object.keys(left);
+    return keys.length === Object.keys(right).length &&
+      keys.every((key) => Object.hasOwn(right, key) && sameJson(left[key], right[key]));
+  }
+
   async function verifyPublication(message, origin) {
     let result;
     try {
       const latest = await readPublished();
       result = {
         version: latest.version,
-        matches: latest.version === message.version && JSON.stringify(latest.data) === JSON.stringify(message.expected)
+        matches: latest.version === message.version && sameJson(latest.data, message.expected)
       };
     } catch (error) {
       result = { matches: false, error: error.message };
