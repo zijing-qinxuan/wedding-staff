@@ -97,7 +97,6 @@ const weddingData = {
             "線上播放成長影片及婚紗輪播。"
           ],
           note: "背板服務截止時間待公布；須預留足夠拆卸時間。",
-          internalNote: "內部建議截止時間為 16:10，正式確認前不顯示。",
           status: "confirmed"
         },
         { id: "couple-leave", time: "16:30", title: "新人離場、背板撤收完成", summary: "新人必須離場；背板也須在此之前完成撤收。後續由各區負責人與工作人員處理。", status: "confirmed", featured: true },
@@ -160,7 +159,10 @@ const weddingData = {
       ],
       notes: ["男性招待員及其他機動人員協助搬運。"]
     },
-    { id: "floral", name: "花藝及裝飾組", memberIds: ["yu-tong", "ha-na", "ya-lin"], supportIds: ["bi-fang", "yu-chen"], status: "confirmed", periods: [{ label: "共同工作範圍", items: ["講桌、聚會所及部分椅背花藝。", "走廊中段牆面裝飾。", "視需要協助相片桌及甜點桌裝飾。", "婚禮後撤收裝飾。"] }], notes: ["碧芳、妤晨完成相片桌後加入；其他有空人員可協助。"] },
+    { id: "floral", name: "花藝及裝飾組", memberIds: ["yu-tong", "ha-na", "ya-lin"], supportIds: ["bi-fang", "yu-chen"], status: "confirmed", periods: [
+      { label: "上午準備", items: ["聚會所：講桌、會場及部分椅背花藝。", "走廊：中段牆面，並視需要協助相片桌裝飾。", "集會所：視需要協助甜點桌裝飾。"] },
+      { label: "撤場", items: ["婚禮後撤收裝飾。"] }
+    ], notes: ["碧芳、妤晨完成相片桌後加入；其他有空人員可協助。"] },
     {
       id: "photo-table", name: "相片桌組", memberIds: ["bi-fang", "yu-chen"], status: "confirmed",
       periods: [
@@ -169,7 +171,7 @@ const weddingData = {
       ],
       notes: ["碧芳正式婚禮期間負責手語傳譯，工作不可衝突。"]
     },
-    { id: "dessert", name: "甜點組", memberIds: ["chen-xuan", "meng-xuan"], status: "pending", periods: [{ label: "上午", items: ["設置甜點桌、鋪設桌巾並完成裝飾。"] }, { label: "13:30", items: ["接收花果空間甜點，開放甜點及飲料。"] }, { label: "活動期間", items: ["補充甜點飲料、維持整潔，冷藏品使用保麗龍盒保存。", "照片列印開始後孟萱轉換崗位，陳萱留守甜點區。"] }, { label: "撤場", items: ["處理剩餘甜點、撤收用品並恢復場地。"] }], notes: ["機動支援人員如有需要再指定。"] },
+    { id: "dessert", name: "甜點組", memberIds: ["chen-xuan", "meng-xuan"], status: "pending", periods: [{ label: "上午", items: ["設置甜點桌、鋪設桌巾並完成裝飾。"] }, { label: "接收甜點", scheduleId: "guest-entry", items: ["接收花果空間甜點，開放甜點及飲料。"] }, { label: "活動期間", items: ["補充甜點飲料、維持整潔，冷藏品使用保麗龍盒保存。", "照片列印開始後孟萱轉換崗位，陳萱留守甜點區。"] }, { label: "撤場", items: ["處理剩餘甜點、撤收用品並恢復場地。"] }], notes: ["機動支援人員如有需要再指定。"] },
     { id: "backdrop-setup", name: "拍照背板設置組", memberIds: ["en-sheng", "guang-zhong", "yun-xuan"], deadline: "16:30 前完成背板撤收", status: "confirmed", periods: [{ label: "上午", items: ["架設背板並確認穩定安全。", "配合攝影燈光，完成背板區準備。"] }, { label: "撤場", items: ["16:30 前完成背板撤收。"] }], notes: ["拆卸人員依當天人力調整，由仕晏協調。"] },
     { id: "photo-lighting", name: "攝影燈光設置", memberIds: ["groom", "meng-kai", "dexter"], status: "confirmed", periods: [{ label: "上午", items: ["架設背板攝影燈光、調整效果並試拍。", "確保燈架及線材安全。"] }, { label: "後續", items: ["新郎初設後由孟楷、Dexter 接續，活動後收拾設備。"] }] },
     {
@@ -183,14 +185,14 @@ const weddingData = {
     },
     { id: "badges", name: "胸花及胸章發放", memberIds: ["guang-zhong", "groom", "zhu-yu-lin"], status: "confirmed", periods: [{ label: "婚禮開始前", items: ["光中、新郎負責胸花。", "朱育麟負責工作人員胸章。", "於工作人員抵達及婚禮開始前完成。"] }] },
     { id: "bridal-aid", name: "婚紗及婚禮用品協助", memberIds: ["hui-lin-bridal"], status: "confirmed", periods: [{ label: "婚禮期間", items: ["保管結婚戒指與婚誓麥克風，坐前排待命。", "新人上台後視需要整理婚紗。", "婚誓提供麥克風，交換戒指時遞交戒指。"] }], notes: ["新秘亦安排在前排。"] },
-    { id: "av", name: "影音組", leaderId: "zi-yi", memberIds: ["zi-yi"], status: "confirmed", periods: [{ label: "上午", items: ["設置測試影音、麥克風、Zoom 與影片。", "確認機位編號並完成進場彩排。"] }, { label: "14:00", items: ["開放 Zoom，持續播放婚紗輪播。"] }, { label: "14:30 起", items: ["配合主席、播放進場音樂，依新娘位置切換焦點視訊。", "負責正式婚禮音控與影音。"] }, { label: "婚禮後", items: ["配合影片播放及設備撤收。"] }] },
+    { id: "av", name: "影音組", leaderId: "zi-yi", memberIds: ["zi-yi"], status: "confirmed", periods: [{ label: "上午", items: ["設置測試影音、麥克風、Zoom 與影片。", "確認機位編號並完成進場彩排。"] }, { label: "Zoom 開放", scheduleId: "zoom-open", items: ["開放 Zoom，持續播放婚紗輪播。"] }, { label: "婚禮開始", scheduleId: "ceremony-start", items: ["配合主席、播放進場音樂，依新娘位置切換焦點視訊。", "負責正式婚禮音控與影音。"] }, { label: "婚禮後", items: ["配合影片播放及設備撤收。"] }] },
     { id: "hall-b-av", name: "第二會場投影設備", memberIds: ["zi-yi", "meng-kai"], status: "pending", periods: [{ label: "上午", items: ["設置集會所筆電、投影機、投影幕及音響。", "確認 Zoom 畫面與聲音正常並完成測試。"] }, { label: "活動期間", items: ["正常後不需專人一直坐在電腦前；仕晏負責協調。"] }], notes: ["設備異常支援人員待公布。"] },
     { id: "livestream", name: "直播攝影組", memberIds: ["a-jie", "zhen-hong", "lin-pei-xian"], status: "confirmed", periods: [{ label: "機位", items: ["A：阿傑，集會所門口手機固定拍攝。", "B：振宏，聚會所門口手機拍攝走廊。", "C：林沛賢，Sony A7 III 拍進場、婚誓與戒指。", "D：聚會所固定攝影機，負責主要固定畫面。"] }], notes: ["本組為 Zoom 畫面，與紀錄攝影組不同。"] },
     { id: "documentary-photo", name: "紀錄攝影組", memberIds: ["you-lei", "xin-en"], status: "confirmed", periods: [{ label: "友蕾", items: ["聚會所婚禮紀錄、進場、婚誓、戒指及正式大合照。"] }, { label: "信恩", items: ["集會所跟拍、自然抓拍及賓客活動紀錄。"] }], notes: ["機動拍攝，避免長時間阻擋視線。"] },
     { id: "backdrop-photo-print", name: "背板拍照及照片列印", memberIds: ["meng-kai", "meng-xuan"], deadline: "16:30 前完成背板撤收", status: "pending", periods: [{ label: "孟楷｜背板攝影", items: ["引導賓客、確認構圖光線、拍照並交付列印。"] }, { label: "孟萱｜照片列印", items: ["接收照片、操作印表機、發放照片並補充耗材。"] }, { label: "服務原則", items: ["每組一張；賓客不必等待新人即可先拍照。"] }], notes: ["開始及停止時間待公布。", "內部準備約 200 張相紙。", "上午不安排新人與賓客合照。"] },
-    { id: "group-photo-host", name: "大合照主持", memberIds: [], status: "pending", periods: [{ label: "主要工作", items: ["接過新郎麥克風並宣布拍照順序。", "召集人員並提醒下一組準備。", "配合友蕾與招待員，控制流程確保新人 16:30 離場。"] }], notes: ["主持人待公布；敬偉尚未確認，不列入名單。"] },
+    { id: "group-photo-host", name: "大合照主持", memberIds: [], status: "pending", periods: [{ label: "主要工作", items: ["接過新郎麥克風並宣布拍照順序。", "召集人員並提醒下一組準備。", "配合友蕾與招待員，控制流程確保新人 16:30 離場。"] }], notes: ["主持人待公布。"] },
     { id: "sign-language", name: "手語傳譯", memberIds: ["bi-fang"], candidateIds: ["hui-ling", "hui-lin-interpreter"], status: "pending", periods: [{ label: "婚禮演講", items: ["碧芳負責手語傳譯。"] }, { label: "全體唱詩", items: ["詩歌傳譯人員於前排就座並配合。"] }], notes: ["詩歌傳譯姓名為慧玲／慧琳，待核對；不可與慧霖合併。", "固定攝影機不需為傳譯改變構圖。"] },
-    { id: "lunch", name: "午餐安排", memberIds: ["groom"], status: "confirmed", periods: [{ label: "工作人員需知", items: ["便當抵達後，全體工作人員一起用餐。"] }], internalNote: "取餐招待員尚未指定，由現場協調。" }
+    { id: "lunch", name: "午餐安排", memberIds: ["groom"], status: "confirmed", periods: [{ label: "工作人員需知", items: ["便當抵達後，全體工作人員一起用餐。"] }] }
   ],
   venues: [
     {
@@ -215,7 +217,7 @@ const weddingData = {
     disclaimer: "配置示意，非實際比例；椅子數量僅表達位置關係，不代表實際總數。"
   },
   ceremony: {
-    start: "14:30", targetEnd: "15:15–15:20（目標時間）",
+    start: "14:30", targetEnd: "15:15–15:20（目標時間）", startEventId: "ceremony-start", endEventId: "ceremony-target",
     items: [
       ["主席開場", "由新郎父親主持。"], ["主席宣布新娘進場"], ["新娘與父親走出小房間", "循環播放詩歌第 132 首。"],
       ["新娘與父親經走廊前往聚會所"], ["新郎迎接新娘"], ["新人一起走上講台"], ["整理婚紗", "慧霖及新秘視需要協助。"],
@@ -248,17 +250,41 @@ const weddingData = {
   ],
   equipment: [
     "聚會所現有電腦：Zoom 主控及音控。", "林沛賢使用電腦：Sony A7 III 直播及後續影片播放（播放人員暫定）。",
-    "集會所電腦：Zoom 接收及投影；至少需另借一台，另可準備一台備用。", "手機直播設備：機位 A、B。",
+    "集會所電腦：Zoom 接收及投影。", "手機直播設備：機位 A、B。",
     "相片印表機及相紙、背板攝影燈光。", "婚誓用無線麥克風；譜架由勤萱攜帶。"
   ],
+  avInfo: {
+    operatorId: "zi-yi",
+    note: "林沛賢是否正式負責婚禮結束後的線上影片播放，以及 Zoom 結束時間，尚未最終確認。"
+  },
   photoGroups: {
     status: "pending", message: "合照分組及順序待公布", location: "聚會所",
     photographerId: "you-lei", host: "待公布", assistantTeamId: "hall-a-ushers",
     coordination: groupPhotoCoordination,
     steps: [...groupPhotoSetupSteps, groupPhotoShooting]
   },
+  photoServices: [
+    {
+      label: "活動紀錄", title: "兩區機動攝影",
+      duties: [
+        { personId: "you-lei", work: "聚會所婚禮紀錄與正式大合照。" },
+        { personId: "xin-en", work: "集會所自然跟拍、互動抓拍與現場紀錄。" }
+      ],
+      notes: []
+    },
+    {
+      label: "背板服務", title: "拍照及照片列印",
+      duties: [
+        { personId: "meng-kai", work: "引導、構圖、拍攝並交付照片。" },
+        { personId: "meng-xuan", work: "列印、發放照片及補充耗材。" }
+      ],
+      notes: ["每組一張照片。", "賓客不必等待新人即可先拍照。", "服務時間待公布，背板 16:30 前撤收完成。"]
+    }
+  ],
   cleanup: {
-    keyTimes: [{ time: "16:30", label: "新人離場、背板撤收完成" }, { time: "17:15", label: "全部撤收、整理及復原完成" }, { time: "17:20", label: "剩餘工作人員最晚離場" }],
+    summary: "新人 16:30 離場後不再負責現場撤收；各組收拾自己布置的物品，由場地負責人統一確認。",
+    storageNote: `指定用品撤收後暫放集會所，保持動線暢通。新人於 ${pickupDate}早上自行取回。`,
+    keyTimes: [{ time: "16:30", label: "新人離場、背板撤收完成", scheduleId: "couple-leave" }, { time: "17:15", label: "全部撤收、整理及復原完成", scheduleId: "cleanup-complete" }, { time: "17:20", label: "剩餘工作人員最晚離場", scheduleId: "staff-leave" }],
     areas: [
       {
         name: "A 場地及走廊撤場", leaderId: "guang-zhong",
@@ -295,10 +321,33 @@ const weddingData = {
   },
   reception: {
     venue: "晶宴會館－御豐館", hall: "星辰劇場",
-    times: [{ time: "17:00", label: "賓客入場" }, { time: "18:00", label: "婚宴正式開始" }, { time: "20:30", label: "預計送客", status: "tentative" }],
+    times: [{ time: "17:00", label: "賓客入場" }, { time: "18:00", label: "婚宴正式開始", scheduleId: "reception-start" }, { time: "20:30", label: "預計送客", status: "tentative", scheduleId: "send-off" }],
     advanceTeam: "待公布", advanceTasks: ["提前前往婚宴會場。", receptionCarryTask, "完成照片及小物布置。"],
     note: "其他婚宴詳細流程及人員安排後續補充。"
   }
 };
+
+const staffFallbackUpdatedOn = "2026 年 11 月 27 日";
+const staffOverview = {
+  "staff-arrival": { overviewTitle: "工作人員抵達" },
+  "setup-start": { overviewTitle: "場地布置及設備設置" },
+  rehearsal: { overviewTitle: "進場彩排及影音測試", guideTeamIds: ["av"] },
+  makeup: { overviewHidden: true, guideTeamIds: ["bridal-aid"] },
+  lunch: { overviewTitle: "工作人員午餐" },
+  "final-check": { overviewHidden: true, guideTeamIds: ["hall-a-ushers", "av"] },
+  "guest-entry": { overviewTitle: "賓客入場、甜點開放" },
+  "ceremony-target": { overviewTitle: "婚禮節目結束，交接大合照" },
+  "after-ceremony": { overviewHidden: true },
+  "couple-leave": { overviewTitle: "新人離場、背板收妥" },
+  "cleanup-complete": { overviewTitle: "全部撤場完成" },
+  "staff-leave": { overviewTitle: "工作人員最晚離場" },
+  "reception-arrival": { overviewTitle: "抵達婚宴會場" },
+  "reception-start": { overviewTitle: "婚宴開始" },
+  "send-off": { overviewHidden: true },
+  "stored-items-pickup": { overviewHidden: true }
+};
+weddingData.schedule.forEach((day) => {
+  day.events.forEach((item) => Object.assign(item, staffOverview[item.id]));
+});
 
 if (typeof module !== "undefined" && module.exports) module.exports = weddingData;

@@ -1,10 +1,18 @@
 (() => {
   "use strict";
 
-  const data = weddingData;
-  const peopleById = new Map(data.people.map((person) => [person.id, person]));
-  const teamsById = new Map(data.teams.map((team) => [team.id, team]));
-  const statusText = { confirmed: "已確認", tentative: "暫定", pending: "待公布" };
+  const source = window.weddingStaffSource;
+  const find = (id) => document.getElementById(id);
+  const today = "wedding-day";
+  const sections = ["schedule", "teams", "guides", "reception"];
+  const groupDefinitions = [
+    { id: "ushers", title: "招待組", teams: ["hall-a-ushers", "hall-b-ushers", "downstairs-ushers", "badges"] },
+    { id: "av", title: "影音及直播組", teams: ["av", "hall-b-av", "livestream"] },
+    { id: "photography", title: "攝影及大合照", teams: ["documentary-photo", "group-photo-host", "backdrop-photo-print", "backdrop-setup", "photo-lighting"] }
+  ];
+  let data;
+  let people;
+  let eventsById;
 
   function element(tag, className = "", text = "") {
     const node = document.createElement(tag);
@@ -13,212 +21,538 @@
     return node;
   }
 
+  function link(hash, text, className) {
+    const anchor = element("a", className, text);
+    anchor.href = "#" + hash;
+    return anchor;
+  }
+
+  function list(items, ordered = false) {
+    const node = element(ordered ? "ol" : "ul", "work-list");
+    items.forEach((item) => node.append(element("li", "", item)));
+    return node;
+  }
+
+  function fold(label, id) {
+    const detail = element("details", "reference");
+    if (id) detail.id = id;
+    detail.append(element("summary", "", label));
+    return detail;
+  }
+
+  function paragraph(target, text, className) {
+    if (text) target.append(element("p", className, text));
+  }
+
   function personName(id) {
-    return peopleById.get(id)?.name || "待公布";
+    return people.get(id) || "待公布";
   }
 
-  function peopleNames(ids = []) {
-    return ids.map(personName).join("、");
+  function getEvents() {
+    return (data.schedule || []).flatMap((day) => day.events);
   }
 
-  function statusBadge(status) {
-    const badge = element("span", `status status-${status}`, statusText[status] || status);
-    return badge;
+  function overviewTitle(event) {
+    // Legacy published versions can still inherit the current short labels.
+    const baseline = weddingData.schedule.flatMap(({ events }) => events).find(({ id }) => id === event.id);
+    return event.overviewTitle ||
+      (event.overviewTitle === undefined && baseline?.title === event.title && staffOverview[event.id]?.overviewTitle) ||
+      event.title;
   }
 
-  function list(items, className = "") {
-    const ul = element("ul", className);
-    items.forEach((item) => ul.append(element("li", "", item)));
-    return ul;
+  function timeNumber(value) {
+    const parts = String(value).match(/(\d{1,2}):(\d{2})/);
+    return parts ? Number(parts[1]) * 60 + Number(parts[2]) : null;
   }
 
-  function validateData() {
-    const errors = [];
-    const ids = new Set();
-    data.people.forEach(({ id }) => {
-      if (ids.has(id)) errors.push(`重複的人員 ID：${id}`);
-      ids.add(id);
+  function eventLabel(title, status) {
+    if (status === "tentative" && !/^(預計|暫定)/.test(title)) return "預計" + title;
+    if (status === "pending" && !title.includes("待公布")) return title + "（待公布）";
+    return title;
+  }
+
+  function timeRows(events) {
+    const rows = element("dl", "time-rows");
+    events.forEach(({ id, scheduleId, time, title, status, detail }) => {
+      const row = element("div", "time-row");
+      if (id) row.id = "event-" + id;
+      const description = element("dd", "", eventLabel(title, status));
+      paragraph(description, detail, "muted");
+      row.append(element("dt", "clock", eventsById.get(scheduleId)?.time || time), description);
+      rows.append(row);
     });
-    const checkPeople = (idsToCheck, path) => idsToCheck.forEach((id) => {
-      if (!ids.has(id)) errors.push(`${path} 找不到人員：${id}`);
-    });
-    data.management.forEach((item) => checkPeople([item.personId], `management.${item.role}`));
-    data.teams.forEach((team) => {
-      checkPeople(team.memberIds || [], `teams.${team.id}`);
-      checkPeople(team.supportIds || [], `teams.${team.id}.supportIds`);
-      checkPeople(team.candidateIds || [], `teams.${team.id}.candidateIds`);
-      if (team.leaderId) checkPeople([team.leaderId], `teams.${team.id}.leaderId`);
-    });
-    data.assignments.forEach((item) => checkPeople([item.personId], "assignments"));
-    data.cameraPositions.forEach((item) => {
-      if (item.operatorId) checkPeople([item.operatorId], `cameraPositions.${item.id}`);
-    });
-    if (errors.length) console.error("[婚禮工作資料]", errors);
-    return errors;
+    return rows;
   }
 
-  function renderHero() {
-    document.querySelector("#hero-couple").textContent = data.weddingInfo.couple;
-    document.querySelector("#hero-title").textContent = data.weddingInfo.title;
-    document.querySelector("#hero-date").textContent = `${data.weddingInfo.dateShort}・${data.weddingInfo.weekday}`;
-    document.querySelector("#hero-message").textContent = data.weddingInfo.message;
-
-    const container = document.querySelector("#key-times");
-    data.keyTimes.forEach((item) => {
-      const link = element("a", "key-time");
-      link.href = `#event-${item.scheduleId}`;
-      link.append(element("strong", "", item.time), element("span", "", item.label));
-      container.append(link);
-    });
-  }
-
-  function renderTimeline() {
-    const container = document.querySelector("#timeline-days");
-    data.schedule.forEach((day) => {
-      const daySection = element("section", "timeline-day");
-      const header = element("header", "timeline-day-header");
-      header.append(element("p", "", day.date), element("h3", "", day.title));
-      const events = element("div", "timeline-list");
-
-      day.events.forEach((eventData) => {
-        const details = element("details", `timeline-event${eventData.featured ? " is-featured" : ""}`);
-        details.id = `event-${eventData.id}`;
-        const summary = element("summary");
-        const time = element("time", "timeline-time", eventData.time);
-        const main = element("div", "timeline-main");
-        const titleRow = element("div", "timeline-title-row");
-        titleRow.append(element("h4", "", eventData.title));
-        if (eventData.status !== "confirmed") titleRow.append(statusBadge(eventData.status));
-        main.append(titleRow, element("p", "", eventData.summary));
-        summary.append(time, main, element("span", "expand-mark", "＋"));
-        details.append(summary);
-
-        if (eventData.details?.length || eventData.note) {
-          const content = element("div", "timeline-detail");
-          if (eventData.details?.length) content.append(list(eventData.details));
-          if (eventData.note) content.append(element("p", "note", eventData.note));
-          details.append(content);
-        } else {
-          details.classList.add("no-detail");
-        }
-        events.append(details);
+  function renderSchedule() {
+    const content = [];
+    (data.schedule || []).forEach((day) => {
+      const visible = day.events.filter((event) =>
+        !event.timeOnly && !(event.overviewHidden ?? staffOverview[event.id]?.overviewHidden ?? (day.id === "day-before"))
+      );
+      if (!visible.length) return;
+      const dayBlock = element("div", "timeline-day");
+      if (day.id !== today) dayBlock.append(element("h3", "", day.date));
+      const groups = [[], [], []];
+      let phase = 0;
+      visible.forEach((event) => {
+        const time = timeNumber(event.time);
+        if (time !== null) phase = time < 780 ? 0 : time < 960 ? 1 : 2;
+        groups[phase].push({ ...event, title: overviewTitle(event) });
       });
-      daySection.append(header, events);
-      container.append(daySection);
-    });
-  }
-
-  function renderManagement() {
-    const container = document.querySelector("#management-grid");
-    data.management.forEach((item) => {
-      const card = element("article", "management-card");
-      const top = element("div", "management-top");
-      top.append(element("p", "card-label", item.role), element("h4", "", personName(item.personId)));
-      card.append(top, list(item.duties));
-      if (item.note) card.append(element("p", "note", item.note));
-      container.append(card);
-    });
-  }
-
-  function renderTeams() {
-    const container = document.querySelector("#team-grid");
-    data.teams.forEach((team, index) => {
-      const details = element("details", "team-card");
-      const summary = element("summary");
-      const intro = element("div", "team-intro");
-      const count = String(index + 1).padStart(2, "0");
-      const labelRow = element("div", "team-label-row");
-      labelRow.append(element("span", "team-number", count));
-      if (team.status !== "confirmed") labelRow.append(statusBadge(team.status));
-      intro.append(labelRow, element("h4", "", team.name));
-
-      const members = element("div", "team-members");
-      if (team.leaderId) {
-        const leader = element("p");
-        leader.append(element("span", "", "負責人"), document.createTextNode(personName(team.leaderId)));
-        members.append(leader);
-      }
-      const people = element("p");
-      people.append(element("span", "", team.memberIds.length ? "人員" : "人員"), document.createTextNode(team.memberIds.length ? peopleNames(team.memberIds) : "待公布"));
-      members.append(people);
-      if (team.supportIds?.length) {
-        const support = element("p");
-        support.append(element("span", "", "機動支援"), document.createTextNode(peopleNames(team.supportIds)));
-        members.append(support);
-      }
-      if (team.candidateIds?.length) {
-        const candidates = element("p");
-        candidates.append(element("span", "", "姓名待核對"), document.createTextNode(peopleNames(team.candidateIds)));
-        members.append(candidates);
-      }
-      if (team.deadline) members.append(element("p", "team-deadline", team.deadline));
-      summary.append(intro, members, element("span", "expand-mark", "＋"));
-      details.append(summary);
-
-      const body = element("div", "team-body");
-      team.periods.forEach((period) => {
-        const section = element("section", "team-period");
-        section.append(element("h5", "", period.label), list(period.items));
-        body.append(section);
+      const phases = element("div", "overview-grid");
+      ["上午準備", "婚禮及活動", "撤場及婚宴"].forEach((title, index) => {
+        if (!groups[index].length) return;
+        const phase = element("section", "overview-phase");
+        phase.append(element("h3", "", title), timeRows(groups[index]));
+        phases.append(phase);
       });
-      if (team.notes?.length) {
-        const notes = element("div", "team-notes");
-        notes.append(element("strong", "", "重要注意事項"), list(team.notes));
-        body.append(notes);
+      dayBlock.append(phases);
+      content.push(dayBlock);
+    });
+    find("timeline-days").replaceChildren(...content);
+    return content.length > 0;
+  }
+
+  function collectGuides() {
+    const leaders = data.management || [];
+    const guides = new Map();
+    const usherIds = groupDefinitions[0].teams;
+    const usherLead = leaders.find(({ role }) => role.includes("招待組負責人"));
+    const coordinators = leaders.filter((entry) => entry !== usherLead);
+    if (coordinators.length || data.cleanup) {
+      guides.set("operations", {
+        id: "operations", title: "現場統籌與撤場", teams: [], managers: coordinators,
+        indexVisible: Boolean(coordinators.length || data.cleanup?.areas.length)
+      });
+    }
+    for (const team of data.teams || []) {
+      const definition = groupDefinitions.find((group) => group.teams.includes(team.id));
+      const key = definition?.id || team.id;
+      if (!guides.has(key)) {
+        guides.set(key, { id: key, title: definition?.title || team.name, teams: [] });
       }
-      details.append(body);
-      container.append(details);
+      guides.get(key).teams.push(team);
+    }
+    function ensureGuide(id, title) {
+      if (!guides.has(id)) guides.set(id, { id, title, teams: [] });
+      return guides.get(id);
+    }
+    if (data.venues && !guides.has("chairs-stage")) ensureGuide("chairs-stage", "講台及場地布置");
+    if (data.ceremony) ensureGuide("av", "影音及直播組");
+    if (data.photoGroups) ensureGuide("photography", "攝影及大合照");
+    if (usherLead) {
+      const group = ensureGuide("ushers", "招待組");
+      group.manager = usherLead;
+      group.leader = usherLead.personId;
+    } else {
+      const group = guides.get("ushers");
+      if (group) group.leader = group.teams.find((team) => usherIds.includes(team.id) && team.leaderId)?.leaderId;
+    }
+    return [...guides.values()];
+  }
+
+  function roster(team, omitLead) {
+    const parts = [];
+    if (team.leaderId && team.leaderId !== omitLead) parts.push("負責人 " + personName(team.leaderId));
+    const members = team.memberIds.filter((id) => id !== team.leaderId && id !== omitLead);
+    if (members.length) parts.push(members.map(personName).join("、"));
+    if (team.supportIds?.length) parts.push("支援 " + team.supportIds.map(personName).join("、"));
+    if (team.candidateIds?.length) parts.push("待核對 " + team.candidateIds.map(personName).join("、"));
+    if (!parts.length && !team.leaderId && !team.memberIds.length) parts.push("待公布");
+    return parts.join("｜");
+  }
+
+  function renderIndex(guides) {
+    const rows = [];
+    guides.forEach((guide) => {
+      const teams = guide.teams.filter((team) => !team.indexHidden);
+      if (!teams.length && !guide.indexVisible) return;
+      const row = element("div", "index-row");
+      const title = element("dt");
+      title.append(link("guide-" + guide.id, guide.title));
+      const names = element("dd");
+      if (guide.leader) paragraph(names, "負責人 " + personName(guide.leader));
+      teams.forEach((team) => {
+        const entry = element("p");
+        if (teams.length > 1 || team.name !== guide.title) entry.append(element("span", "roster-label", team.name + "　"));
+        entry.append(document.createTextNode(roster(team, guide.leader)));
+        if (entry.textContent.trim()) names.append(entry);
+      });
+      if (guide.managers?.length) {
+        guide.managers.forEach(({ role, personId }) => paragraph(names, role + " " + personName(personId)));
+      } else if (guide.indexVisible && data.cleanup) {
+        const namesOnly = [...new Set(data.cleanup.areas.map(({ leaderId }) => leaderId).filter(Boolean))];
+        paragraph(names, namesOnly.map(personName).join("、"));
+      }
+      const action = link("guide-" + guide.id, "查看指南", "index-link");
+      action.setAttribute("aria-label", "查看" + guide.title + "指南");
+      names.append(action);
+      row.append(title, names);
+      rows.push(row);
+    });
+    find("team-index").replaceChildren(...rows);
+    return rows.length > 0;
+  }
+
+  function periodTime(label) {
+    const time = timeNumber(label);
+    if (time !== null) return time;
+    if (/撤場|大合照後/.test(label)) return 970;
+    if (/節目結束後|婚禮後|後續/.test(label)) return 925;
+    if (/婚禮期間|婚禮演講|全體唱詩/.test(label)) return 870;
+    if (/入場|活動期間/.test(label)) return 810;
+    if (/上午/.test(label)) return 570;
+    if (/婚禮開始前/.test(label)) return 860;
+    return null;
+  }
+
+  function renderWork(parent, team, { lead, showTitle, omit = [], showStorage = true } = {}) {
+    const work = element("div", "team-work");
+    if (showTitle) work.append(element("h4", "", team.name));
+    paragraph(work, roster(team, lead), "roster");
+    paragraph(work, team.deadline, "deadline");
+    const periods = team.periods.map(({ label, scheduleId, items }) => {
+      const time = eventsById.get(scheduleId)?.time;
+      return {
+        label: time ? time + "　" + label : label,
+        items: items.filter((item) => !omit.includes(item)),
+        rank: time ? timeNumber(time) : periodTime(label)
+      };
+    });
+    getEvents().filter((event) => !event.timeOnly &&
+      (event.guideTeamIds ?? staffOverview[event.id]?.guideTeamIds ?? []).includes(team.id)
+    ).forEach((event) => {
+      const entry = {
+        label: event.time + "　" + eventLabel(event.title, event.status),
+        items: [event.summary, ...(event.details || []), event.note].filter(Boolean),
+        rank: timeNumber(event.time)
+      };
+      const next = entry.rank === null ? -1 : periods.findIndex((period) => period.rank !== null && period.rank > entry.rank);
+      periods.splice(next < 0 ? periods.length : next, 0, entry);
+    });
+    periods.forEach(({ label, items }) => {
+      if (!items.length) return;
+      const block = element("div", "work-period");
+      block.append(element("h5", "", label), list(items));
+      work.append(block);
+    });
+    if (team.notes?.length) {
+      if (team.notes.length < 3) work.append(list(team.notes));
+      else {
+        const notes = fold("補充注意事項");
+        notes.append(list(team.notes));
+        work.append(notes);
+      }
+    }
+    if (showStorage && (team.deadline || team.periods.some(({ label, items }) => /撤場|撤收|復原|拆卸/.test(label + items.join(""))))) {
+      paragraph(work, storageNote(), "muted");
+    }
+    parent.append(work);
+  }
+
+  function storageNote() {
+    return data.cleanup?.storageNote || data.cleanup?.logistics.find(({ title }) => title === "集會所暫存與隔天取回")?.text;
+  }
+
+  function sharedUsherDuties(teams) {
+    const areas = teams.filter(({ id }) => ["hall-a-ushers", "hall-b-ushers", "downstairs-ushers"].includes(id));
+    if (areas.length < 2) return [];
+    const duties = areas.map(({ periods }) => periods.flatMap(({ items }) => items));
+    return [...new Set(duties[0])].filter((item) => duties.slice(1).every((area) => area.includes(item)));
+  }
+
+  function renderManagers(body, guide) {
+    if (guide.manager) {
+      const details = fold("組別負責人工作");
+      details.append(list(guide.manager.duties));
+      paragraph(details, guide.manager.note, "muted");
+      body.append(details);
+    }
+    guide.managers?.forEach((manager) => {
+      const block = element("section", "team-work");
+      block.append(element("h4", "", manager.role + "｜" + personName(manager.personId)), list(manager.duties));
+      paragraph(block, manager.note, "muted");
+      body.append(block);
     });
   }
 
-  function renderHandoffs() {
-    const container = document.querySelector("#handoff-grid");
-    data.assignments.forEach((item) => {
-      const card = element("article", "handoff-card");
-      card.append(element("h4", "", personName(item.personId)));
-      const flow = element("p", "handoff-flow");
-      flow.append(element("span", "", item.from), element("i", "", item.trigger), element("strong", "", item.to));
-      card.append(flow, element("p", "handoff-return", item.returnTo));
-      container.append(card);
-    });
+  function renderGuide(guide) {
+    const detail = element("details", "work-guide");
+    detail.id = "guide-" + guide.id;
+    detail.setAttribute("name", "staff-guides");
+    const title = element("summary", "", guide.title);
+    const body = element("div", "guide-body");
+    if (guide.leader) paragraph(body, "負責人 " + personName(guide.leader), "roster");
+    const common = guide.id === "ushers" ? sharedUsherDuties(guide.teams) : [];
+    if (common.length) {
+      body.append(element("h4", "", "各區招待共通工作"), list(common));
+    }
+    renderManagers(body, guide);
+    guide.teams.forEach((team) => renderWork(body, team, {
+      lead: guide.leader, showTitle: guide.title !== team.name, omit: common,
+      showStorage: guide.teams.length === 1
+    }));
+    if (guide.teams.length > 1 && guide.teams.some(({ periods }) => periods.some(({ items }) => items.some((item) => /撤場|撤收|復原/.test(item))))) {
+      paragraph(body, storageNote(), "muted");
+    }
+    if (guide.id === "operations" && data.cleanup) renderCleanup(body);
+    if (guide.id === "ushers" && data.seating) addSeating(body, "ushers");
+    if (guide.id === "chairs-stage" && data.seating) {
+      addSeating(body, "stage");
+      renderVenues(body);
+    }
+    if (guide.id === "av" && data.ceremony) renderProgram(body);
+    if (guide.id === "photography" && data.photoGroups) renderPhotos(body);
+    if (guide.id === "ushers" || guide.teams.length) renderHandoffs(body, guide);
+    if (!data.sections?.allocation) body.append(link("teams", "返回工作分配", "back-to-index"));
+    detail.append(title, body);
+    return detail;
   }
 
-  function renderVenues() {
-    document.querySelector("#ceremony-venue").textContent = data.weddingInfo.ceremonyVenue;
-    document.querySelector("#ceremony-address").textContent = data.weddingInfo.ceremonyAddress;
-    const map = document.querySelector("#ceremony-map");
-    map.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${data.weddingInfo.ceremonyVenue} ${data.weddingInfo.ceremonyAddress}`)}`;
-    map.setAttribute("aria-label", `開啟 ${data.weddingInfo.ceremonyVenue} 地圖（新分頁）`);
+  function renderHandoffs(body, guide) {
+    const memberIds = new Set(guide.teams.flatMap(({ memberIds, supportIds }) => [...memberIds, ...(supportIds || [])]));
+    const unique = (data.assignments || []).filter(({ personId, from }) =>
+      memberIds.has(personId) && (guide.id !== "ushers" || from.includes("招待"))
+    );
+    if (!unique.length) return;
+    const detail = fold("兼任工作交接");
+    unique.forEach((item) => paragraph(detail,
+      personName(item.personId) + "｜" + item.trigger + "，從" + item.from + "轉至" + item.to + "。" + item.returnTo + "。"));
+    body.append(detail);
+  }
 
-    const container = document.querySelector("#venue-grid");
+  function addSeating(body, context) {
+    const seating = fold(context === "ushers" ? "座位及大合照配置圖" : "講台及大合照配置圖");
+    const plan = element("div", "floor-plan-wrap");
+    plan.id = context + "-floor-plan";
+    paragraph(seating, data.seating.orientation, "muted");
+    if (context === "ushers") seating.append(list([data.seating.reserved, data.seating.family, data.seating.general]));
+    paragraph(seating, data.seating.removal, "muted");
+    const toggles = element("div", "diagram-tabs");
+    toggles.setAttribute("role", "group");
+    toggles.setAttribute("aria-label", "聚會所配置切換");
+    for (const [mode, title] of [["ceremony", "婚禮期間"], ["photo", "大合照期間"]]) {
+      const button = element("button", "diagram-tab", title);
+      button.type = "button";
+      button.dataset.diagram = mode;
+      button.setAttribute("aria-pressed", String(mode === "ceremony"));
+      button.onclick = () => {
+        for (const item of toggles.children) item.setAttribute("aria-pressed", String(item === button));
+        renderFloorPlan(plan, mode);
+      };
+      toggles.append(button);
+    }
+    seating.append(toggles, plan);
+    const legend = element("ul", "legend");
+    for (const [kind, title] of [["reserved", "聾人保留座位"], ["family", "親屬優先座位"], ["general", "一般賓客座位"], ["removal", "大合照清空範圍"]]) {
+      const item = element("li");
+      item.append(element("i", "legend-box " + kind), document.createTextNode(title));
+      legend.append(item);
+    }
+    seating.append(legend);
+    seating.addEventListener("toggle", () => {
+      if (seating.open && !plan.hasChildNodes()) renderFloorPlan(plan, "ceremony");
+    });
+    body.append(seating);
+  }
+
+  function renderVenues(body) {
+    const venues = fold("場地、地址及動線", "venues");
+    const info = data.weddingInfo;
+    paragraph(venues, info.ceremonyVenue + "｜" + info.ceremonyAddress);
+    const map = element("a", "", "開啟場地地圖");
+    map.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(info.ceremonyVenue + " " + info.ceremonyAddress);
+    map.target = "_blank";
+    map.rel = "noopener noreferrer";
+    venues.append(map);
     data.venues.forEach((venue) => {
-      const card = element("article", "venue-card");
-      card.append(element("p", "card-label", venue.purpose), element("h3", "", venue.name));
-      if (venue.capacity) card.append(element("p", "venue-capacity", venue.capacity));
-      card.append(list(venue.items));
-      if (venue.note) card.append(element("p", "note", venue.note));
-      container.append(card);
+      venues.append(element("h4", "", venue.name));
+      paragraph(venues, [venue.purpose, venue.capacity].filter(Boolean).join("・"), "muted");
+      venues.append(list(venue.items));
+      paragraph(venues, venue.note);
     });
-
-    document.querySelector("#seating-orientation").textContent = data.seating.orientation;
-    const notes = document.querySelector("#seating-notes");
-    [
-      ["聾人保留座位", data.seating.reserved], ["親屬優先座位", data.seating.family],
-      ["一般賓客座位", data.seating.general], ["大合照場地轉換", data.seating.removal]
-    ].forEach(([title, text]) => {
-      const item = element("article");
-      item.append(element("h4", "", title), element("p", "", text));
-      notes.append(item);
-    });
-    renderFloorPlan("ceremony");
+    body.append(venues);
   }
+
+  function renderProgram(body) {
+    const program = fold("婚禮節目、直播機位及影音提示", "program");
+    const { start, targetEnd, startEventId, endEventId, items } = data.ceremony;
+    const linkedEnd = eventsById.get(endEventId)?.time;
+    paragraph(program, (eventsById.get(startEventId)?.time || start) + " 開始｜" + (linkedEnd ? linkedEnd + "（目標時間）" : targetEnd));
+    if (data.avInfo?.operatorId) paragraph(program, "焦點視訊操作 " + personName(data.avInfo.operatorId));
+    const cameras = element("dl", "reference-rows");
+    data.cameraPositions.forEach((camera, index) => {
+      const code = camera.label || (/^[a-z0-9]{1,3}$/i.test(camera.id) ? camera.id : String(index + 1));
+      const operator = camera.operatorId ? personName(camera.operatorId) : camera.operator;
+      const row = element("div");
+      row.append(element("dt", "", "機位 " + code + "｜" + operator),
+        element("dd", "", camera.device + "・" + camera.place + "。 " + camera.work));
+      cameras.append(row);
+    });
+    if (data.cameraPositions.length) program.append(element("h4", "", "直播機位"), cameras);
+    if (items.length) {
+      program.append(element("h4", "", "婚禮節目順序"), list(items.map((item) =>
+        eventLabel(item.title, item.status) + (item.detail ? "｜" + item.detail : "")
+      ), true));
+    }
+    if (data.avCues.length) {
+      const table = element("table", "cue-table");
+      table.append(element("caption", "", "影音操作提示"));
+      const head = element("thead");
+      const heading = element("tr");
+      ["婚禮環節", "畫面", "音訊及其他操作"].forEach((text) => {
+        const th = element("th", "", text);
+        th.scope = "col";
+        heading.append(th);
+      });
+      head.append(heading);
+      const rows = element("tbody");
+      data.avCues.forEach(({ moment, video, audio }) => {
+        const row = element("tr");
+        const momentCell = element("th", "", moment);
+        momentCell.scope = "row";
+        row.append(momentCell, element("td", "", video), element("td", "", audio));
+        rows.append(row);
+      });
+      table.append(head, rows);
+      program.append(table);
+    }
+    paragraph(body, data.avInfo?.note, "muted");
+    body.append(program);
+    const tests = fold("影音測試及設備說明");
+    if (data.avChecklist.length) tests.append(list(data.avChecklist));
+    if (data.equipment.length) tests.append(element("h4", "", "設備配置"), list(data.equipment));
+    if (data.avChecklist.length || data.equipment.length) body.append(tests);
+  }
+
+  function renderPhotos(body) {
+    const { location, photographerId, hostId, host, message, groups, steps, coordination } = data.photoGroups;
+    const photos = element("section", "team-work");
+    photos.id = "photos";
+    photos.append(element("h4", "", "正式大合照"));
+    paragraph(photos, [location, photographerId && "攝影 " + personName(photographerId), "主持 " + (hostId ? personName(hostId) : host || "待公布")].filter(Boolean).join("｜"), "roster");
+    paragraph(photos, coordination);
+    if (steps.length) photos.append(list(steps, true));
+    if (groups?.length) {
+      photos.append(element("h5", "", "合照分組順序"), list(groups.map(({ name, note }) =>
+        note ? name + "｜" + note : name
+      ), true));
+    } else paragraph(photos, message || "合照分組及順序待公布。", "muted");
+    body.append(photos);
+    if (data.photoServices?.length) {
+      const services = fold("攝影及背板服務補充說明");
+      data.photoServices.forEach((service) => {
+        services.append(element("h4", "", service.title));
+        service.duties.forEach(({ personId, work }) => paragraph(services, personName(personId) + "｜" + work));
+        service.notes.forEach((note) => paragraph(services, note, "muted"));
+      });
+      body.append(services);
+    }
+  }
+
+  function renderCleanup(body) {
+    const cleanup = data.cleanup;
+    paragraph(body, cleanup.summary);
+    if (cleanup.keyTimes.length) body.append(timeRows(cleanup.keyTimes.map(({ label, ...time }) => ({ ...time, title: label }))));
+    paragraph(body, storageNote(), "muted");
+    const checks = fold("各場地撤場檢查及物資去向", "cleanup");
+    cleanup.areas.forEach(({ name, leaderId, items, note }) => {
+      checks.append(element("h4", "", name + (leaderId ? "｜" + personName(leaderId) : "")), list(items));
+      paragraph(checks, note, "muted");
+    });
+    cleanup.logistics.forEach(({ title, text, status }) => {
+      checks.append(element("h4", "", eventLabel(title, status)));
+      paragraph(checks, text);
+    });
+    body.append(checks);
+  }
+
+  function renderReception() {
+    const parent = find("reception-content");
+    parent.replaceChildren();
+    if (!data.reception) return;
+    const { venue, hall, times, advanceTeam, advanceTasks, groups, note } = data.reception;
+    paragraph(parent, [venue, hall].filter(Boolean).join("｜"), "reception-location");
+    const publicTimes = times.filter(({ status }) => !status || status === "confirmed");
+    if (publicTimes.length) {
+      parent.append(timeRows(publicTimes.map(({ label, ...item }) => ({ ...item, title: label }))));
+    }
+    const arrival = eventsById.get("reception-arrival");
+    if (arrival?.summary) paragraph(parent, arrival.time + "｜" + arrival.summary, "muted");
+    if (advanceTasks.length || advanceTeam) {
+      const advance = element("section", "team-work");
+      advance.append(element("h3", "", "婚宴先遣"));
+      paragraph(advance, advanceTeam && "人員 " + advanceTeam, "roster");
+      if (advanceTasks.length) advance.append(list(advanceTasks));
+      parent.append(advance);
+    }
+    (groups || []).forEach((team) => renderWork(parent, team, { showTitle: true, showStorage: false }));
+    if (note && note !== "其他婚宴詳細流程及人員安排後續補充。") paragraph(parent, note, "muted");
+  }
+
+  function openGuideForHash(move = false) {
+    const id = location.hash.slice(1);
+    const target = find(id);
+    if (!target) return;
+    const guide = target.closest(".work-guide");
+    if (!guide) return;
+    for (const item of find("guide-list").children) item.open = item === guide;
+    if (target.matches("details.reference")) target.open = true;
+    if (move) {
+      const focusTarget = (target.matches("details") && target.querySelector("summary")) || target;
+      focusTarget.focus({ preventScroll: true });
+      target.scrollIntoView({ block: "start" });
+    }
+  }
+
+  function mount(snapshot) {
+    const open = find("guide-list").querySelector(".work-guide[open]")?.id;
+    data = snapshot;
+    people = new Map(data.people.map(({ id, name }) => [id, name]));
+    eventsById = new Map(getEvents().map((event) => [event.id, event]));
+    find("hero-couple").textContent = data.weddingInfo.couple;
+    find("hero-title").textContent = data.weddingInfo.title;
+    find("hero-date").textContent = data.weddingInfo.date + "・" + data.weddingInfo.weekday;
+    const settings = data.sections || {};
+    const guides = collectGuides();
+    const hasSchedule = !settings.schedule && renderSchedule();
+    if (settings.schedule) find("timeline-days").replaceChildren();
+    const hasIndex = renderIndex(guides);
+    find("guide-list").replaceChildren(...guides.map(renderGuide));
+    renderReception();
+    const visibility = {
+      schedule: !settings.schedule && hasSchedule,
+      teams: !settings.allocation && hasIndex,
+      guides: guides.length > 0,
+      reception: !settings.reception && Boolean(data.reception)
+    };
+    sections.forEach((id) => {
+      find(id).hidden = !visibility[id];
+      document.querySelector(".site-nav a[href='#" + id + "']").hidden = !visibility[id];
+    });
+    if (open && find(open)) find(open).open = true;
+    openGuideForHash(true);
+  }
+
+  window.addEventListener("hashchange", () => openGuideForHash(true));
+  find("guide-list").addEventListener("toggle", (event) => {
+    const guide = event.target;
+    if (!guide.matches(".work-guide[open]")) return;
+    for (const item of find("guide-list").children) {
+      if (item !== guide && item.open) item.open = false;
+    }
+  }, true);
+  document.addEventListener("click", (event) => {
+    const anchor = event.target.closest("a[href^='#']");
+    if (anchor && anchor.hash === location.hash) openGuideForHash(true);
+  });
 
   function chair(x, y, kind, label) {
     return `<g class="seat ${kind}" aria-label="${label}"><rect x="${x}" y="${y}" width="24" height="19" rx="4"></rect></g>`;
   }
 
-  function renderFloorPlan(mode) {
-    const plan = document.querySelector("#floor-plan-wrap");
+  function renderFloorPlan(plan, mode) {
     const isPhoto = mode === "photo";
     const rows = [];
     const firstRow = isPhoto ? 3 : 0;
@@ -251,9 +585,9 @@
       ? "講台用品已移走，前三排椅子已撤除，兩區合併作為大合照拍攝空間。其餘座位可供親屬及有需要的賓客等待。"
       : "以賓客面向講台為準，聾人保留座位在最左側靠牆四席、連續前三排。正式婚禮節目後完全清空講台並撤除前三排椅子。";
 
-    plan.innerHTML = `<svg class="floor-plan" viewBox="0 0 534 430" role="img" aria-labelledby="plan-title" aria-describedby="plan-desc">
-      <title id="plan-title">聚會所${isPhoto ? "大合照期間" : "婚禮期間"}配置示意</title>
-      <desc id="plan-desc">${description}詢問處位於聚會所後方，提供資訊及接收禮物。</desc>
+    plan.innerHTML = `<svg class="floor-plan" viewBox="0 0 534 430" role="img" aria-labelledby="${plan.id}-title" aria-describedby="${plan.id}-desc">
+      <title id="${plan.id}-title">聚會所${isPhoto ? "大合照期間" : "婚禮期間"}配置示意</title>
+      <desc id="${plan.id}-desc">${description}詢問處位於聚會所後方，提供資訊及接收禮物。</desc>
       <rect class="room" x="18" y="18" width="498" height="394" rx="18"></rect>
       <text class="orientation-label" x="267" y="40" text-anchor="middle">賓客面向講台</text>
       ${stageAndPhotoArea}
@@ -261,149 +595,67 @@
       ${rows.join("")}
       <rect class="desk" x="375" y="373" width="108" height="26" rx="6"></rect><text class="desk-label" x="429" y="391" text-anchor="middle">詢問處・禮物</text>
       <text class="wall-label" x="32" y="260" transform="rotate(-90 32 260)" text-anchor="middle">最靠左側牆壁</text>
-    </svg><p class="diagram-disclaimer">${data.seating.disclaimer}</p>`;
+    </svg>`;
+    plan.append(element("p", "diagram-disclaimer", data.seating.disclaimer));
   }
 
-  function setupDiagramTabs() {
-    document.querySelectorAll(".diagram-tab").forEach((button) => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll(".diagram-tab").forEach((item) => {
-          const active = item === button;
-          item.classList.toggle("is-active", active);
-          item.setAttribute("aria-pressed", String(active));
-        });
-        renderFloorPlan(button.dataset.diagram);
-      });
-    });
+  const status = document.querySelector("#published-status");
+  const refresh = document.querySelector("#refresh-published");
+  let cached = source.readCache();
+  try {
+    mount(cached?.data || weddingData);
+  } catch (error) {
+    if (!cached) throw error;
+    cached = null;
+    mount(weddingData);
   }
-
-  function renderProgram() {
-    document.querySelector("#ceremony-range").textContent = `${data.ceremony.start} 開始・${data.ceremony.targetEnd}`;
-    const ceremonyList = document.querySelector("#ceremony-list");
-    data.ceremony.items.forEach((item) => {
-      const li = element("li");
-      const content = element("div");
-      const title = element("h4", "", item.title);
-      if (item.status !== "confirmed") title.append(statusBadge(item.status));
-      content.append(title);
-      if (item.detail) content.append(element("p", "", item.detail));
-      li.append(content);
-      ceremonyList.append(li);
-    });
-
-    const cameraGrid = document.querySelector("#camera-grid");
-    data.cameraPositions.forEach((camera) => {
-      const card = element("article", "camera-card");
-      const head = element("div", "camera-head");
-      head.append(element("span", "camera-id", camera.id), element("h4", "", camera.operatorId ? personName(camera.operatorId) : camera.operator));
-      card.append(head, element("p", "camera-meta", `${camera.device}・${camera.place}`), element("p", "", camera.work));
-      cameraGrid.append(card);
-    });
-
-    const table = element("table");
-    const thead = element("thead");
-    const tr = element("tr");
-    ["婚禮環節", "畫面", "音訊及其他操作"].forEach((heading) => tr.append(element("th", "", heading)));
-    thead.append(tr);
-    const tbody = element("tbody");
-    data.avCues.forEach((cue) => {
-      const row = element("tr");
-      [["婚禮環節", cue.moment], ["畫面", cue.video], ["音訊及其他操作", cue.audio]].forEach(([label, value]) => {
-        const cell = element("td", "", value);
-        cell.dataset.label = label;
-        row.append(cell);
-      });
-      tbody.append(row);
-    });
-    table.append(thead, tbody);
-    document.querySelector("#av-cues").append(table);
-    document.querySelector("#av-checklist").append(...data.avChecklist.map((item) => element("li", "", item)));
-    document.querySelector("#equipment-list").append(...data.equipment.map((item) => element("li", "", item)));
+  function showStatus(offline = false) {
+    const published = cached ? "更新時間 " + new Date(cached.updatedAt).toLocaleString("zh-TW", {
+      timeZone: "Asia/Taipei", hour12: false
+    }) : "備用資料更新 " + staffFallbackUpdatedOn;
+    status.textContent = offline ? "無法取得最新資料，顯示" + (cached ? "最近快取・" : "") + published : published;
   }
-
-  function renderPhotos() {
-    document.querySelector("#group-photo-photographer").textContent = personName(data.photoGroups.photographerId);
-    document.querySelector("#group-photo-host").textContent = data.photoGroups.host;
-    const message = document.querySelector("#photo-groups-message");
-    message.append(statusBadge(data.photoGroups.status), element("strong", "", data.photoGroups.message));
-    document.querySelector("#group-photo-coordination").textContent = data.photoGroups.coordination;
-    const steps = document.querySelector("#group-photo-steps");
-    data.photoGroups.steps.forEach((step) => steps.append(element("li", "", step)));
+  showStatus();
+  if (source.preview) {
+    status.textContent = "等待管理端預覽資料";
+    source.previewData((snapshot) => {
+      mount(snapshot);
+      status.textContent = "草稿預覽";
+    });
+  } else if (source.enabled) {
+    let checkedAt = 0;
+    let refreshing = false;
+    async function refreshData() {
+      if (refreshing) return;
+      refreshing = true;
+      refresh.disabled = true;
+      const previous = cached;
+      try {
+        const latest = await source.getLatest();
+        if (cached && latest.version < cached.version) throw new Error("版本早於快取");
+        if (!cached || cached.version !== latest.version) mount(latest.data);
+        cached = latest;
+        source.remember(latest);
+        showStatus();
+      } catch {
+        const fallback = previous?.data || weddingData;
+        if (data !== fallback) mount(fallback);
+        showStatus(true);
+      } finally {
+        checkedAt = Date.now();
+        refresh.disabled = false;
+        refreshing = false;
+      }
+    }
+    function refreshWhenVisible() {
+      if (!document.hidden && Date.now() - checkedAt > 60000) refreshData();
+    }
+    refresh.hidden = false;
+    refresh.addEventListener("click", refreshData);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenVisible);
+    window.addEventListener("online", refreshData);
+    setInterval(refreshWhenVisible, 120000);
+    refreshData();
   }
-
-  function renderCleanup() {
-    const times = document.querySelector("#cleanup-times");
-    data.cleanup.keyTimes.forEach((item) => {
-      const block = element("div");
-      block.append(element("strong", "", item.time), element("span", "", item.label));
-      times.append(block);
-    });
-
-    const grid = document.querySelector("#cleanup-grid");
-    data.cleanup.areas.forEach((area) => {
-      const card = element("article", "cleanup-card");
-      const head = element("div", "cleanup-head");
-      head.append(element("h3", "", area.name), element("p", "", `負責人｜${personName(area.leaderId)}`));
-      card.append(head, list(area.items), element("p", "note", area.note));
-      grid.append(card);
-    });
-
-    const logistics = document.querySelector("#logistics-grid");
-    data.cleanup.logistics.forEach((item) => {
-      const card = element("article", "logistics-card");
-      const head = element("div");
-      head.append(element("h4", "", item.title));
-      if (item.status !== "confirmed") head.append(statusBadge(item.status));
-      card.append(head, element("p", "", item.text));
-      logistics.append(card);
-    });
-
-    document.querySelector("#reception-title").textContent = data.reception.venue;
-    document.querySelector("#reception-hall").textContent = data.reception.hall;
-    data.reception.times.forEach((item) => {
-      const time = element("div");
-      time.append(element("strong", "", item.time), element("span", "", item.label));
-      if (item.status) time.append(statusBadge(item.status));
-      document.querySelector("#reception-times").append(time);
-    });
-    document.querySelector("#reception-team").textContent = data.reception.advanceTeam;
-    document.querySelector("#reception-tasks").append(...data.reception.advanceTasks.map((item) => element("li", "", item)));
-    document.querySelector("#reception-note").textContent = data.reception.note;
-  }
-
-  function setupDetails() {
-    document.querySelectorAll("details").forEach((details) => {
-      details.addEventListener("toggle", () => {
-        const mark = details.querySelector(":scope > summary .expand-mark");
-        if (mark) mark.textContent = details.open ? "−" : "＋";
-      });
-    });
-  }
-
-  function setupNavState() {
-    const links = [...document.querySelectorAll(".nav-scroll a")];
-    const sections = links.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
-    if (!("IntersectionObserver" in window)) return;
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        links.forEach((link) => link.classList.toggle("is-current", link.getAttribute("href") === `#${entry.target.id}`));
-      });
-    }, { rootMargin: "-25% 0px -65%", threshold: 0 });
-    sections.forEach((section) => observer.observe(section));
-  }
-
-  validateData();
-  renderHero();
-  renderTimeline();
-  renderManagement();
-  renderTeams();
-  renderHandoffs();
-  renderVenues();
-  renderProgram();
-  renderPhotos();
-  renderCleanup();
-  setupDiagramTabs();
-  setupDetails();
-  setupNavState();
 })();
