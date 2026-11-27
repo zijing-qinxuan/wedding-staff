@@ -286,6 +286,31 @@ test("preview verifies the public response by both revision and content", async 
   assert.equal(posted.at(-1).matches,true);
   assert.equal(posted.at(-1).type,"staff-preview-verified");
   assert.equal(posted.at(-1).data,undefined);
+
+  function reverseObjectKeys(value) {
+    if (Array.isArray(value)) return value.map(reverseObjectKeys);
+    if (!value || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value).reverse().map(([key, child]) => [key, reverseObjectKeys(child)]));
+  }
+  const reordered = reverseObjectKeys(baseline);
+  assert.notEqual(JSON.stringify(reordered),JSON.stringify(baseline));
+  send({ ...verify, expected:reordered });
+  await new Promise(setImmediate);
+  assert.equal(posted.at(-1).matches,true);
+
+  send({ ...verify, version:8, expected:reordered });
+  await new Promise(setImmediate);
+  assert.equal(posted.at(-1).matches,false);
+
+  current = { ...baseline, teams: [...baseline.teams].reverse() };
+  send(verify);
+  await new Promise(setImmediate);
+  assert.equal(posted.at(-1).matches,false);
+
+  send({ ...verify, expected:{ ...baseline, teams:current.teams, privateNotes:"private" } });
+  await new Promise(setImmediate);
+  assert.equal(posted.at(-1).matches,false);
+
   current = { ...baseline, weddingInfo: { ...baseline.weddingInfo, title:"不同內容" } };
   send(verify);
   await new Promise(setImmediate);
