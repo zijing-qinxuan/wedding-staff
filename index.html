@@ -7,12 +7,13 @@
   <meta name="description" content="子靖與勤萱的婚禮工作指南">
   <title>子靖＆勤萱｜婚禮工作指南</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@500;600&amp;display=swap">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
   <script src="data.js" defer></script>
   <script src="site-config.js" defer></script>
   <script src="public-data.js?v=4" defer></script>
   <script src="staff-roster.js?v=3" defer></script>
-  <script src="script.js?v=3" defer></script>
+  <script src="staff-personal-guide.js?v=1" defer></script>
+  <script src="script.js?v=4" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">跳至主要內容</a>
@@ -40,6 +41,7 @@
     </section>
     <section id="teams" aria-labelledby="teams-title">
       <h2 id="teams-title">工作分配</h2>
+      <p id="personal-guide-hint" class="muted" hidden>點擊姓名即可查看個人工作安排</p>
       <dl id="team-index" class="team-index"></dl>
     </section>
     <section id="guides" aria-labelledby="guides-title">
@@ -51,6 +53,17 @@
       <div id="reception-content"></div>
     </section>
   </main>
+
+  <dialog id="personal-guide" class="personal-guide" aria-labelledby="personal-guide-name">
+    <header class="personal-guide-header">
+      <div>
+        <h2 id="personal-guide-name"></h2>
+        <p class="muted">個人工作指南</p>
+      </div>
+      <form method="dialog"><button type="submit" autofocus>關閉</button></form>
+    </header>
+    <div id="personal-guide-body" class="personal-guide-body"></div>
+  </dialog>
 
   <footer class="section">
     <a href="#top">回到頁首</a>

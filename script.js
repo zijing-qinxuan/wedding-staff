@@ -14,6 +14,11 @@
   let people;
   let eventsById;
   let editSelection;
+  let personalEnabled = false;
+  let personalLinks;
+  let openPerson;
+  let returnPoint;
+  const personalDialog = find("personal-guide");
 
   function editAt(parent, label, target, caption = "編輯") {
     if (!editSelection) return;
@@ -60,6 +65,23 @@
 
   function personName(id) {
     return people.get(id) || "待公布";
+  }
+
+  function personNode(id) {
+    const name = personName(id);
+    if (!personalEnabled || !people.has(id)) return document.createTextNode(name);
+    const button = element("button", "person-name", name);
+    button.type = "button";
+    button.dataset.personId = id;
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-label", "查看" + name + "的個人工作安排");
+    return button;
+  }
+
+  function personParagraph(target, prefix, id, suffix = "", className) {
+    const line = element("p", className, prefix);
+    line.append(personNode(id), document.createTextNode(suffix));
+    target.append(line);
   }
 
   function getEvents() {
@@ -174,6 +196,14 @@
     return ids.length ? ids.map(personName).join("、") : "待公布";
   }
 
+  function appendPeople(parent, ids) {
+    if (!ids.length) parent.append("待公布");
+    ids.forEach((id, index) => {
+      if (index) parent.append("、");
+      parent.append(personNode(id));
+    });
+  }
+
   function appendRoles(parent, roles) {
     if (!roles.length) {
       parent.append(document.createTextNode("待公布"));
@@ -182,7 +212,8 @@
     const tags = element("span", "roster-roles");
     roles.forEach(([label, ids]) => {
       const tag = element("span", "roster-role");
-      tag.append(element("span", "roster-caption", label), document.createTextNode(" " + roleNames(ids)));
+      tag.append(element("span", "roster-caption", label), document.createTextNode(" "));
+      appendPeople(tag, ids);
       tags.append(tag);
     });
     parent.append(tags);
@@ -205,7 +236,7 @@
       const row = element("div", "index-row");
       const title = element("dt");
       title.append(element("h3", "", guide.title));
-      if (guide.leader) paragraph(title, "總負責人 " + personName(guide.leader), "index-lead");
+      if (guide.leader) personParagraph(title, "總負責人 ", guide.leader, "", "index-lead");
       const action = link("guide-" + guide.id, "查看指南", "index-link");
       action.setAttribute("aria-label", "查看" + guide.title + "指南");
       title.append(action);
@@ -221,10 +252,10 @@
         }
       });
       if (guide.managers?.length) {
-        guide.managers.forEach(({ role, personId }) => paragraph(names, role + " " + personName(personId)));
+        guide.managers.forEach(({ role, personId }) => personParagraph(names, role + " ", personId));
       } else if (guide.indexVisible && data.cleanup) {
         data.cleanup.areas.forEach(({ name, leaderId }) => {
-          if (leaderId) paragraph(names, name + " " + personName(leaderId));
+          if (leaderId) personParagraph(names, name + " ", leaderId);
         });
       }
       row.append(title, names);
@@ -272,6 +303,7 @@
           const assignment = distribution?.items.get(item);
           return [{
             text: assignment ? assignment.role + "：" + roleNames(assignment.ids) : item,
+            assignment,
             target: { area: "team", id: team.id, periodIndex, itemIndex }
           }];
         }),
@@ -299,7 +331,14 @@
       if (!items.length) return;
       const block = element("div", "work-period");
       const tasks = list(items.map(({ text }) => text));
-      items.forEach(({ target }, index) => editAt(tasks.children[index], "工作內容", target));
+      items.forEach(({ target, assignment }, index) => {
+        const task = tasks.children[index];
+        if (assignment && personalEnabled) {
+          task.replaceChildren(assignment.role + "：");
+          appendPeople(task, assignment.ids);
+        }
+        editAt(task, "工作內容", target);
+      });
       block.append(element("h5", "", label), tasks);
       work.append(block);
     });
@@ -338,7 +377,9 @@
     }
     guide.managers?.forEach((manager) => {
       const block = element("section", "team-work");
-      block.append(element("h4", "", manager.role + "｜" + personName(manager.personId)), list(manager.duties));
+      const heading = element("h4", "", manager.role + "｜");
+      heading.append(personNode(manager.personId));
+      block.append(heading, list(manager.duties));
       editAt(block.firstElementChild, manager.role, { area: "management" });
       paragraph(block, manager.note, "muted");
       body.append(block);
@@ -351,7 +392,7 @@
     detail.setAttribute("name", "staff-guides");
     const title = element("summary", "", guide.title);
     const body = element("div", "guide-body");
-    if (guide.leader) paragraph(body, "負責人 " + personName(guide.leader), "roster");
+    if (guide.leader) personParagraph(body, "負責人 ", guide.leader, "", "roster");
     const common = guide.id === "ushers" ? sharedUsherDuties(guide.teams) : [];
     if (common.length) {
       const heading = element("h4", "", "各區招待共通工作");
@@ -388,8 +429,8 @@
     if (!unique.length) return;
     const detail = fold("兼任工作交接");
     editAt(detail, "兼任工作交接", { area: "assignments" });
-    unique.forEach((item) => paragraph(detail,
-      personName(item.personId) + "｜" + item.trigger + "，從" + item.from + "轉至" + item.to + "。" + item.returnTo + "。"));
+    unique.forEach((item) => personParagraph(detail, "", item.personId,
+      "｜" + item.trigger + "，從" + item.from + "轉至" + item.to + "。" + item.returnTo + "。"));
     body.append(detail);
   }
 
@@ -455,14 +496,14 @@
     const linkedEnd = eventsById.get(endEventId)?.time;
     paragraph(program, (eventsById.get(startEventId)?.time || start) + " 開始｜" + (linkedEnd ? linkedEnd + "（目標時間）" : targetEnd));
     editAt(program.lastElementChild, "婚禮節目及時間", { area: "ceremony" });
-    if (data.avInfo?.operatorId) paragraph(program, "焦點視訊操作 " + personName(data.avInfo.operatorId));
+    if (data.avInfo?.operatorId) personParagraph(program, "焦點視訊操作 ", data.avInfo.operatorId);
     const cameras = element("dl", "reference-rows");
     data.cameraPositions.forEach((camera, index) => {
       const code = camera.label || (/^[a-z0-9]{1,3}$/i.test(camera.id) ? camera.id : String(index + 1));
-      const operator = camera.operatorId ? personName(camera.operatorId) : camera.operator;
       const row = element("div");
-      row.append(element("dt", "", "機位 " + code + "｜" + operator),
-        element("dd", "", camera.device + "・" + camera.place + "。 " + camera.work));
+      const heading = element("dt", "", "機位 " + code + "｜");
+      heading.append(camera.operatorId ? personNode(camera.operatorId) : document.createTextNode(camera.operator));
+      row.append(heading, element("dd", "", camera.device + "・" + camera.place + "。 " + camera.work));
       editAt(row.firstElementChild, "直播機位 " + code, { area: "camera", id: camera.id });
       cameras.append(row);
     });
@@ -510,7 +551,10 @@
     photos.id = "photos";
     photos.append(element("h4", "", "正式大合照"));
     editAt(photos.firstElementChild, "大合照安排", { area: "photoGroups" });
-    paragraph(photos, [location, photographerId && "攝影 " + personName(photographerId), "主持 " + (hostId ? personName(hostId) : host || "待公布")].filter(Boolean).join("｜"), "roster");
+    const roster = element("p", "roster", location);
+    if (photographerId) roster.append(location ? "｜攝影 " : "攝影 ", personNode(photographerId));
+    roster.append(location || photographerId ? "｜主持 " : "主持 ", hostId ? personNode(hostId) : host || "待公布");
+    photos.append(roster);
     paragraph(photos, coordination);
     if (steps.length) photos.append(list(steps, true));
     if (groups?.length) {
@@ -524,7 +568,7 @@
       editAt(services, "攝影及背板服務", { area: "photoServices" });
       data.photoServices.forEach((service) => {
         services.append(element("h4", "", service.title));
-        service.duties.forEach(({ personId, work }) => paragraph(services, personName(personId) + "｜" + work));
+        service.duties.forEach(({ personId, work }) => personParagraph(services, "", personId, "｜" + work));
         service.notes.forEach((note) => paragraph(services, note, "muted"));
       });
       body.append(services);
@@ -540,7 +584,9 @@
     const checks = fold("各場地撤場檢查及物資去向", "cleanup");
     editAt(checks, "撤場與物資去向", { area: "cleanup" });
     cleanup.areas.forEach(({ name, leaderId, items, note }) => {
-      checks.append(element("h4", "", name + (leaderId ? "｜" + personName(leaderId) : "")), list(items));
+      const heading = element("h4", "", name);
+      if (leaderId) heading.append("｜", personNode(leaderId));
+      checks.append(heading, list(items));
       paragraph(checks, note, "muted");
     });
     cleanup.logistics.forEach(({ title, text, status }) => {
@@ -572,7 +618,10 @@
       if (advanceTasks.length) advance.append(list(advanceTasks));
       parent.append(advance);
     }
-    (groups || []).forEach((team) => renderWork(parent, team, { showTitle: true, showStorage: false }));
+    (groups || []).forEach((team) => {
+      renderWork(parent, team, { showTitle: true, showStorage: false });
+      parent.lastElementChild.id = "reception-team-" + team.id;
+    });
     if (note && note !== "其他婚宴詳細流程及人員安排後續補充。") paragraph(parent, note, "muted");
   }
 
@@ -591,10 +640,11 @@
     }
   }
 
-  function mount(snapshot) {
+  function mount(snapshot, published = false) {
     const open = find("guide-list").querySelector(".work-guide[open]")?.id;
     const references = source.preview ? [...document.querySelectorAll("details.reference[open][id]")].map(({ id }) => id) : [];
     data = snapshot;
+    personalEnabled = published;
     people = new Map(data.people.map(({ id, name }) => [id, name]));
     eventsById = new Map(getEvents().map((event) => [event.id, event]));
     find("hero-couple").textContent = data.weddingInfo.couple;
@@ -602,9 +652,19 @@
     find("hero-date").textContent = data.weddingInfo.date + "・" + data.weddingInfo.weekday;
     const settings = data.sections || {};
     const guides = collectGuides();
+    personalLinks = {
+      guideByTeam: new Map([
+        ...guides.flatMap((guide) => guide.teams.map(({ id }) => [id, "guide-" + guide.id])),
+        ...(data.reception?.groups || []).map(({ id }) => [id, "reception-team-" + id])
+      ]),
+      guideByManager: new Map(guides.flatMap((guide) =>
+        [guide.manager, ...(guide.managers || [])].filter(Boolean).map(({ role }) => [role, "guide-" + guide.id])
+      ))
+    };
     const hasSchedule = !settings.schedule && renderSchedule();
     if (settings.schedule) find("timeline-days").replaceChildren();
     const hasIndex = renderIndex(guides);
+    find("personal-guide-hint").hidden = !personalEnabled || !hasIndex;
     find("guide-list").replaceChildren(...guides.map(renderGuide));
     renderReception();
     const visibility = {
@@ -620,6 +680,10 @@
     if (open && find(open)) find(open).open = true;
     for (const id of references) if (find(id)) find(id).open = true;
     if (!source.preview) openGuideForHash(true);
+    if (personalDialog.open) {
+      if (!personalEnabled || !people.has(openPerson)) personalDialog.close();
+      else showPerson(openPerson);
+    }
   }
 
   window.addEventListener("hashchange", () => openGuideForHash(true));
@@ -631,7 +695,17 @@
     }
   }, true);
   document.addEventListener("click", (event) => {
+    const button = event.target.closest("button.person-name");
+    if (button && personalEnabled) {
+      returnPoint = { button, x: window.scrollX, y: window.scrollY };
+      showPerson(button.dataset.personId);
+      return;
+    }
     const anchor = event.target.closest("a[href^='#']");
+    if (anchor && personalDialog.contains(anchor)) {
+      returnPoint = null;
+      personalDialog.close();
+    }
     if (source.preview && anchor) {
       event.preventDefault();
       navigatePreview(anchor.hash.slice(1));
@@ -639,6 +713,69 @@
     }
     if (anchor && anchor.hash === location.hash) openGuideForHash(true);
   });
+
+  personalDialog.addEventListener("close", () => {
+    if (personalDialog.open) return;
+    if (returnPoint) {
+      const { button, x, y } = returnPoint;
+      const replacement = button.isConnected ? button : [...document.querySelectorAll(".person-name")]
+        .find((candidate) => candidate.dataset.personId === openPerson && candidate.getClientRects().length);
+      (replacement || find("refresh-published")).focus({ preventScroll: true });
+      window.scrollTo(x, y);
+    }
+    openPerson = null;
+    returnPoint = null;
+  });
+
+  function showPerson(id) {
+    const guide = staffPersonalGuide.build(data, id, personalLinks);
+    if (!guide) return;
+    openPerson = id;
+    const body = find("personal-guide-body");
+    const scroll = personalDialog.open ? body.scrollTop : 0;
+    const restoreDialogFocus = body.contains(document.activeElement);
+    find("personal-guide-name").textContent = guide.name;
+    body.replaceChildren();
+    if (guide.roles.length) {
+      const roles = element("ul", "personal-roles");
+      guide.roles.forEach(({ title, target, labels }) => {
+        const item = element("li", "");
+        item.append(element("strong", "", title), document.createTextNode("　" + labels.join("、")));
+        if (target && find(target)) {
+          const full = link(target, "查看完整組別指南");
+          full.setAttribute("aria-label", "查看" + title + "完整指南");
+          item.append(full);
+        }
+        roles.append(item);
+      });
+      body.append(element("h3", "", "組別與職責"), roles);
+    }
+    body.append(element("h3", "", "工作安排"));
+    if (!guide.tasks.length) paragraph(body, "目前沒有已公布的個人或組別工作安排。", "muted");
+    else {
+      const rows = element("ol", "personal-timeline");
+      let previous;
+      let duties;
+      for (const task of guide.tasks) {
+        const group = task.order[0] + "|" + task.when;
+        if (group !== previous) {
+          const row = element("li", "");
+          duties = element("ul", "personal-duties");
+          row.append(element("h4", "", task.when), duties);
+          rows.append(row);
+          previous = group;
+        }
+        const duty = element("li", "");
+        paragraph(duty, task.scopes.map(({ title }) => title).join("、") + " · " + task.kind, "muted");
+        paragraph(duty, task.text);
+        duties.append(duty);
+      }
+      body.append(rows);
+    }
+    if (!personalDialog.open) personalDialog.showModal();
+    else if (restoreDialogFocus) personalDialog.querySelector("button").focus({ preventScroll: true });
+    body.scrollTop = scroll;
+  }
 
   function navigatePreview(id) {
     const target = find(id);
@@ -723,7 +860,7 @@
   }
   cached = source.readCache();
   try {
-    mount(cached?.data || weddingData);
+    mount(cached?.data || weddingData, Boolean(cached));
   } catch (error) {
     if (!cached) throw error;
     cached = null;
@@ -741,13 +878,13 @@
       try {
         const latest = await source.getLatest();
         if (cached && latest.version < cached.version) throw new Error("版本早於快取");
-        if (!cached || cached.version !== latest.version) mount(latest.data);
+        if (!cached || cached.version !== latest.version) mount(latest.data, true);
         cached = latest;
         source.remember(latest);
         showStatus();
       } catch (error) {
         const fallback = previous?.data || weddingData;
-        if (data !== fallback) mount(fallback);
+        if (data !== fallback) mount(fallback, Boolean(previous));
         showStatus(error?.code === "PUBLISHED_UNAVAILABLE" ? error.message : "無法取得最新資料");
       } finally {
         checkedAt = Date.now();

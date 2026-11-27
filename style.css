@@ -215,3 +215,83 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; font-siz
 
 :root:has(.staff-editing) { --nav-height: 0rem; }
 .staff-editing > .site-nav { display: none; }
+
+#personal-guide-hint { margin: -.35rem 0 .5rem; }
+.person-name {
+  appearance: none;
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: .18em;
+}
+.person-name:hover, .person-name:focus-visible {
+  color: var(--gold);
+  text-decoration-color: currentColor;
+}
+.personal-guide {
+  box-sizing: border-box;
+  width: min(42rem, calc(100% - 2rem));
+  max-width: none;
+  max-height: min(85dvh, 54rem);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: .7rem;
+  background: var(--surface);
+  color: var(--ink);
+  overflow: hidden;
+}
+.personal-guide[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.personal-guide::backdrop { background: rgb(57 53 47 / .39); }
+html:has(.personal-guide[open]) { overflow: hidden; }
+.personal-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .85rem clamp(1rem, 3vw, 1.6rem);
+  border-bottom: 1px solid var(--line);
+}
+.personal-guide-header h2 {
+  margin: 0;
+  font: 600 1.65rem/1.35 var(--serif);
+  overflow-wrap: anywhere;
+}
+.personal-guide-header button {
+  min-height: 44px;
+  padding: .35rem .8rem;
+  color: var(--gold);
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  background: transparent;
+  white-space: nowrap;
+}
+.personal-guide-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: .9rem clamp(1rem, 3vw, 1.6rem) max(1.45rem, env(safe-area-inset-bottom));
+  overflow-wrap: anywhere;
+}
+.personal-guide-body h3 { margin-bottom: .4rem; }
+.personal-roles, .personal-timeline, .personal-duties { padding: 0; list-style: none; }
+.personal-roles { margin-bottom: 1rem; }
+.personal-roles li { padding: .32rem 0; border-bottom: 1px solid var(--line); }
+.personal-roles a { display: inline-block; margin-inline-start: .6rem; font-size: .85rem; }
+.personal-timeline > li { padding: .6rem 0; border-top: 1px solid var(--line); }
+.personal-timeline h4 { color: var(--gold); font-variant-numeric: tabular-nums; }
+.personal-duties li { margin-top: .45rem; }
+@media (max-width: 599px) {
+  .personal-guide {
+    inset: auto 0 0;
+    margin: 0;
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: .7rem .7rem 0 0;
+  }
+}

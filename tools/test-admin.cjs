@@ -5,6 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const baseline = require("../data.js");
 const staffRoster = require("../staff-roster.js");
+const staffPersonalGuide = require("../staff-personal-guide.js");
 
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 const schema = read("apps-script/admin/Schema.gs");
@@ -17,6 +18,70 @@ const api = vm.runInNewContext(schema + "\n({ staffSchema_, validateStaff_, publ
 function newDraft() {
   return clone(api.linkStaffNames_({ ...baseline, sections: {}, privateNotes: "" }));
 }
+
+test("personal guides separate shared work from explicitly assigned work and preserve multiple roles", () => {
+  const data = api.publicStaff_(newDraft());
+  const guide = staffPersonalGuide.build(data, "meng-xuan");
+  const work = guide.tasks.map(({ text }) => text).join("\n");
+  assert(guide.roles.some(({ title, labels }) => title === "甜點組" && labels.includes("組員")));
+  assert(guide.roles.some(({ title }) => title === "背板拍照及照片列印"));
+  assert(guide.tasks.some(({ kind, when }) => kind === "工作交接" && when === "照片列印服務開始"));
+  assert(guide.tasks.some(({ kind }) => kind === "組別期限"));
+  assert(guide.tasks.some(({ kind, when }) => kind === "組別共同工作" && when.startsWith("13:30")));
+  assert.match(work, /操作印表機/);
+  assert.doesNotMatch(work, /陳萱留守|確認構圖|引導、構圖|拍攝並交付|孟萱轉換崗位/);
+  const positions = guide.tasks.map(({ when }) => when);
+  assert(positions.indexOf("上午") < positions.findIndex((when) => when.startsWith("13:30")));
+
+  const leader = staffPersonalGuide.build(data, "zhu-yu-lin");
+  assert(leader.roles.some(({ title, labels }) => title === "集會所招待組" && labels.includes("負責人")));
+  assert(leader.roles.some(({ title, labels }) => title === "胸花及胸章發放" && labels.includes("組員")));
+  assert(leader.tasks.some(({ text }) => text.includes("工作人員胸章")));
+  assert(!leader.tasks.some(({ text }) => text.includes("新郎負責胸花")));
+
+  const camera = staffPersonalGuide.build(data, "a-jie");
+  assert(camera.tasks.some(({ kind, when }) => kind === "工作交接" && when === "新娘進場"));
+  assert(camera.tasks.some(({ text }) => text.includes("走出小房間")));
+  assert(!camera.tasks.some(({ text }) => text.includes("沿走廊前進")));
+});
+
+test("personal guide uses published relation IDs, linked times and no private or unconfirmed work", () => {
+  const server = simulate();
+  const draft = newDraft();
+  const person = { id:"single-work-person", name:"測試工作員", internalNote:"private-person-sentinel" };
+  draft.people.push(person, { id:"same-name-person", name:person.name }, { id:"candidate-person", name:"尚待核對員" });
+  draft.reception.groups = [{
+    id:"single-reception-group", name:"測試婚宴組", status:"confirmed", leaderId:person.id,
+    memberIds:[person.id, "same-name-person"], candidateIds:["candidate-person"], internalNote:"private-team-sentinel",
+    periods:[
+      { label:"婚宴入場", scheduleId:"reception-start", items:[
+        "整理迎賓用品。", "整理迎賓用品", { text:"private-work-sentinel", hidden:true }
+      ] },
+      { label:"{person:candidate-person}｜其他工作", items:["還未確定分工"] },
+      { label:person.name + "｜同名歧義", items:["不能把同名者的工作指給任何一人"] }
+    ]
+  }];
+  const initialized = server.rpc("initialize", { revision:0, data:draft });
+  const published = server.rpc("publish", { revision:initialized.revision });
+  const publicData = server.json().data;
+  const view = staffPersonalGuide.build(publicData, person.id);
+  assert.equal(view.name,"測試工作員");
+  assert.deepEqual(view.roles.map(({ labels }) => labels),[["負責人"]]);
+  assert.equal(view.tasks.length,1);
+  assert.equal(view.tasks[0].when,"18:00　婚宴入場");
+  assert.equal(view.tasks[0].kind,"組別共同工作");
+  assert.doesNotMatch(JSON.stringify(view),/private-|歧義|分工/);
+  assert.deepEqual(staffPersonalGuide.build(publicData, "candidate-person").tasks,[]);
+
+  published.draft.people.find(({ id }) => id === person.id).name = "改名工作員";
+  published.draft.reception.groups[0].periods[0].items = ["變更新工作。"];
+  const saved = server.rpc("save", { revision:published.revision, data:published.draft });
+  assert.equal(staffPersonalGuide.build(server.json().data, person.id).name,"測試工作員");
+  assert.doesNotMatch(JSON.stringify(staffPersonalGuide.build(server.json().data, person.id)),/變更新工作/);
+  server.rpc("publish", { revision:saved.revision });
+  assert.equal(staffPersonalGuide.build(server.json().data, person.id).name,"改名工作員");
+  assert.match(JSON.stringify(staffPersonalGuide.build(server.json().data, person.id)),/變更新工作/);
+});
 
 function simulate() {
   const grid = [];
