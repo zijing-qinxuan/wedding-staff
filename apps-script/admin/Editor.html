@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <base target="_top">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&amp;family=Noto+Serif+TC:wght@500;600&amp;display=swap">
 <style>
-  :root { color-scheme:light; --paper:#fffdf7; --bg:#f6f2e9; --ink:#342f29; --gold:#725224; --line:#dacfbb; --error:#8c352c; }
+  :root { color-scheme:light; --paper:#fffcf7; --bg:#f8f5ee; --ink:#39352f; --gold:#765a36; --line:#ded5c5; --error:#8c352c; --muted:#665e52; --serif:"Noto Serif TC","Songti TC","PMingLiU",serif; }
   * { box-sizing:border-box; }
-  body { margin:0; color:var(--ink); background:var(--bg); font:16px/1.5 system-ui,"PingFang TC",sans-serif; }
+  body { margin:0; color:var(--ink); background:var(--bg); font:16px/1.65 "Noto Sans TC","Taipei Sans TC Beta","PingFang TC","Microsoft JhengHei",sans-serif; }
   [hidden] { display:none!important; }
   button,input,textarea,select { font:inherit; color:inherit; }
   button { min-height:44px; padding:.35rem .7rem; border:1px solid var(--line); border-radius:.4rem; background:var(--paper); cursor:pointer; }
@@ -16,32 +17,36 @@
   button[aria-pressed="true"] { border-color:var(--gold); color:var(--gold); }
   :focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
   h1,h2,h3,p { margin:.35rem 0; }
-  h1,h2 { font-family:"Noto Serif TC","Songti TC",serif; }
-  h1 { font-size:1.35rem; } h2 { font-size:1.35rem; } h3 { font-size:1rem; }
+  h1 { font:600 1.5rem/1.35 var(--serif); }
+  h2 { font-size:1.375rem; font-weight:600; line-height:1.4; }
+  h3 { font-size:1.125rem; font-weight:600; }
   header { background:var(--paper); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:1; }
-  .top { max-width:1360px; margin:auto; padding:.55rem clamp(.6rem,3vw,1.4rem); }
+  .top { max-width:1100px; margin:auto; padding:.6rem clamp(.65rem,3vw,1.4rem); }
   .row { display:flex; flex-wrap:wrap; gap:.35rem .5rem; align-items:center; }
   .spread { justify-content:space-between; }
   #state,#feedback,#frame-status { font-size:.875rem; }
   #feedback,#form-error { white-space:pre-line; overflow-wrap:anywhere; }
   .error,.danger { color:var(--error); }
-  .muted { color:#655a49; }
-  #manager { max-width:1360px; margin:auto; padding:0 clamp(.35rem,3vw,1.4rem); }
+  .muted { color:var(--muted); font-size:.875rem; }
+  #manager { max-width:1100px; margin:auto; padding:0 clamp(.35rem,3vw,1.4rem); }
   .nav { padding:.3rem 0; }
   iframe { display:block; width:100%; height:calc(100dvh - 156px); min-height:380px; border:1px solid var(--line); border-radius:.5rem; background:var(--bg); }
   body:has(#tools:not([hidden])) { height:100dvh; display:grid; grid-template-rows:auto minmax(0,1fr); overflow:hidden; }
   body:has(#tools:not([hidden])) #manager { width:100%; margin:0 auto; display:flex; flex-direction:column; }
   body:has(#tools:not([hidden])) #frame { min-height:0; flex:1; padding-bottom:.45rem; }
   body:has(#tools:not([hidden])) iframe { height:100%; min-height:0; }
-  dialog { width:min(calc(100% - 1rem),39rem); max-height:calc(100dvh - 1rem); margin:auto; padding:0; border:1px solid var(--line); border-radius:.65rem; color:var(--ink); background:var(--paper); }
+  dialog { width:min(calc(100% - 2rem),46rem); max-height:calc(100dvh - 2rem); margin:auto; padding:0; border:1px solid var(--line); border-radius:.6rem; color:var(--ink); background:var(--paper); }
+  #panel[open] { display:grid; grid-template-rows:auto minmax(0,1fr) auto; overflow:hidden; }
+  #panel-body { min-height:0; overflow:auto; overscroll-behavior:contain; }
+  #confirmation { width:min(calc(100% - 2rem),29rem); }
   dialog::backdrop { background:#342f2955; }
-  .dialog-head,.dialog-body,.dialog-foot { padding:.68rem 1rem; }
-  .dialog-head { position:sticky; top:0; z-index:1; background:var(--paper); border-bottom:1px solid var(--line); }
-  .dialog-foot { position:sticky; bottom:0; background:var(--paper); border-top:1px solid var(--line); justify-content:flex-end; }
+  .dialog-head,.dialog-body,.dialog-foot { padding:.75rem clamp(.75rem,3vw,1.5rem); }
+  .dialog-head { border-bottom:1px solid var(--line); }
+  .dialog-foot { border-top:1px solid var(--line); justify-content:flex-end; }
   .dialog-body>*+* { margin-top:.65rem; }
   .field { display:block; min-width:0; }
   .field>span { display:block; font-weight:650; margin-bottom:.22rem; }
-  input:not([type=checkbox]),textarea,select { width:100%; min-height:44px; padding:.4rem .6rem; border:1px solid var(--line); border-radius:.35rem; background:white; }
+  input:not([type=checkbox]),textarea,select { width:100%; min-height:44px; padding:.4rem .65rem; border:1px solid var(--line); border-radius:.35rem; background:white; }
   textarea { resize:vertical; }
   .toggle { display:flex; align-items:center; gap:.5rem; min-height:44px; }
   input[type=checkbox] { width:1.2rem; height:1.2rem; accent-color:var(--gold); margin:0; flex-shrink:0; }
@@ -52,7 +57,21 @@
   .value-row,.changes>li,.history>li { padding:.55rem 0; overflow-wrap:anywhere; }
   .entries>details>.fields { padding:.15rem 0 .55rem; }
   .option { width:100%; text-align:left; }
-  .member-options { margin:0; max-height:12rem; overflow:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(7rem,1fr)); padding:0 .2rem; }
+  .editor-section { padding-block:.7rem; border-top:1px solid var(--line); }
+  .editor-section h3 { margin-top:0; }
+  .member-tags { margin:.35rem 0 .7rem; }
+  .member-tag { border-radius:2rem; background:var(--bg); }
+  .suggestions { display:flex; flex-wrap:wrap; gap:.25rem .5rem; }
+  .suggestions .option { width:auto; }
+  .person-picker p:empty { display:none; }
+  .candidate,.edit-period,.relations>li { border-top:1px solid var(--line); padding-bottom:.4rem; }
+  .relations,.people-list { list-style:none; padding:0; margin:.5rem 0; }
+  .people-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(7rem,1fr)); gap:.2rem .65rem; }
+  .people-list li { border-bottom:1px solid var(--line); }
+  .people-list button:hover,.suggestions button:hover,.member-tag:hover { background:var(--bg); border-color:var(--gold); }
+  .period-preview { padding-inline-start:.75rem; }
+  .task-lines { padding-inline-start:1.25rem; }
+  .task-lines summary { font-weight:500; }
   .entry-tools { margin:.25rem 0 .6rem; }
   .changes dl { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:.2rem .8rem; margin:.3rem 0; }
   .changes dt { color:#655a49; } .changes dd { margin:0; white-space:pre-wrap; }
@@ -63,6 +82,7 @@
     iframe { height:calc(100dvh - 196px); }
     .nav { gap:.15rem; } .nav button { padding-inline:.3rem; font-size:.8125rem; }
     .dialog-head,.dialog-body,.dialog-foot { padding:.55rem .7rem; }
+    #panel { width:calc(100% - .65rem); height:calc(100dvh - .65rem); max-height:calc(100dvh - .65rem); }
   }
 </style>
 </head>
@@ -75,6 +95,7 @@
       <button id="preview" type="button" aria-pressed="false">預覽</button>
       <button id="publish" type="button" class="primary">發布</button>
       <button id="advanced" type="button" class="quiet">進階設定</button>
+      <button id="verify-again" type="button" hidden>重新驗證公開版本</button>
     </div>
     <p id="feedback" role="status" hidden></p>
   </div>
@@ -91,6 +112,7 @@
     <button type="button" data-section="schedule" aria-pressed="true" class="quiet">當日總流程</button>
     <button type="button" data-section="teams" class="quiet">工作分配及各組指南</button>
     <button type="button" data-section="reception" class="quiet">婚宴安排</button>
+    <button type="button" id="people" class="quiet">人員管理</button>
     <button type="button" id="library">新增／隱藏</button>
   </nav>
   <p id="frame-status" class="muted" role="status" hidden></p>
@@ -127,7 +149,7 @@ const areas = {
   sections:['網站區塊顯示設定','sections'], weddingInfo:['新人及場地資訊','weddingInfo'],
   keyTimes:['重要時間','keyTimes'], privateNotes:['內部備註','privateNotes']
 };
-let model, draft, visibleDraft, session, transaction, seedReview;
+let model, draft, visibleDraft, session, transaction, seedReview, pendingVerification, lastPublication;
 let dirty = false, busy = false, checking = false, previewOnly = false, selectedSection = 'schedule';
 
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -156,20 +178,40 @@ function formatTime(value) {
 function updateState() {
   if (!model) return;
   const published = model.published;
+  const response = lastPublication?.version === published?.version ? lastPublication?.verified : undefined;
+  const publicationState = response === null ? '正在驗證公開版本' : response === false
+    ? '公開版本尚未確認' : published && '已發布最新版本・' + formatTime(published.updatedAt);
   get('state').textContent = dirty ? '尚未儲存的修改' : published?.version === model.revision
-    ? '已發布最新版本・' + formatTime(published.updatedAt)
+    ? publicationState
     : draft ? '草稿已儲存，尚未發布' : '尚未建立草稿';
   get('save').disabled = busy || checking || !dirty;
   get('publish').disabled = busy || checking || !dirty && published?.version === model.revision;
   get('advanced').disabled = busy || checking;
+  get('verify-again').hidden = response !== false;
+  get('verify-again').disabled = busy || checking;
 }
 function confirmAction(text) {
   const dialog = get('confirmation');
-  dialog.returnValue = '';
+  const form = dialog.querySelector('form');
   get('confirm-message').textContent = text;
-  dialog.showModal();
   return new Promise((resolve) => {
-    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'confirm'), { once:true });
+    const finish = (confirmed) => {
+      form.removeEventListener('submit',submit);
+      dialog.removeEventListener('cancel',cancel);
+      dialog.close();
+      resolve(confirmed);
+    };
+    const submit = (event) => {
+      event.preventDefault();
+      finish(event.submitter?.value === 'confirm');
+    };
+    const cancel = (event) => {
+      event.preventDefault();
+      finish(false);
+    };
+    form.addEventListener('submit',submit);
+    dialog.addEventListener('cancel',cancel);
+    dialog.showModal();
   });
 }
 function rpc(action, payload = {}) {
@@ -211,7 +253,7 @@ function renderPreview() {
   if (!visibleDraft) return;
   if (!session) {
     const url = new URL(model.siteUrl);
-    url.searchParams.set('staff-editor', '2');
+    url.searchParams.set('staff-editor', '3');
     const nonce = crypto.randomUUID();
     url.hash = 'staff-preview=' + nonce;
     const frame = node('iframe');
@@ -239,6 +281,8 @@ window.addEventListener('message', (event) => {
     session.received = true;
     clearTimeout(session.timer);
     frameNotice();
+  } else if (message.type === 'staff-preview-verified' && pendingVerification && message.request === pendingVerification.request) {
+    pendingVerification.finish(message);
   } else if (message.type === 'staff-preview-edit' && session.received && draft && !previewOnly &&
       !busy && !checking && !get('panel').open) {
     selectContent(message.target);
@@ -267,6 +311,7 @@ async function applyState(result) {
   try {
     visibleDraft = await rpc('preview', { data:draft });
     renderPreview();
+    return visibleDraft;
   } catch (error) {
     frameNotice('無法更新預覽。' + (error.message || error));
   }
@@ -287,6 +332,7 @@ get('navigation').addEventListener('click', (event) => {
   sendPreview('staff-preview-navigate', { section });
 });
 get('library').onclick = showLibrary;
+get('people').onclick = showPeople;
 
 function panel(title) {
   get('panel-title').textContent = title;
@@ -294,7 +340,7 @@ function panel(title) {
   get('panel-actions').replaceChildren();
   get('panel-actions').hidden = true;
   if (!get('panel').open) get('panel').showModal();
-  get('panel').scrollTop = 0;
+  get('panel-body').scrollTop = 0;
   return get('panel-body');
 }
 async function closePanel() {
@@ -330,7 +376,8 @@ function fresh(spec) {
 }
 function titleFor(item, spec, index, data) {
   if (typeof item === 'string') return namesIn(item, data);
-  const person = optionsFor('person', data).find(([id]) => id === item.personId)?.[1];
+  const person = data.people.find(({id}) => id === item.personId)?.name;
+  if (item.to && person) return namesIn(item.to,data) + '（' + person + '）';
   return namesIn(item.name || item.title || item.label || item.date || item.role || item.moment ||
     item.text || person || spec.label + ' ' + (index + 1), data);
 }
@@ -401,53 +448,343 @@ function renderField(parent, spec, owner, key, path, data, preferred) {
   if (same(path, preferred)) transaction.focus = control;
 }
 
-function renderMembers(parent, spec, owner, key, path, data, preferred) {
-  const box = node('details');
-  const summary = node('summary');
-  const items = node('div');
-  items.className = 'member-options';
-  box.open = same(path, preferred);
-  box.append(summary, items);
-  const name = node('input');
-  name.placeholder = '輸入姓名';
-  name.setAttribute('aria-label', '新工作人員姓名');
-  const add = async () => {
-    const value = name.value.trim();
-    if (!value) { name.focus(); return; }
-    if (data.people.some((person) => person.name.trim() === value) &&
-        !await confirmAction('已有同名人員「' + value + '」。確認是不同的人，再新增一筆？')) return;
-    const person = { ...fresh(model.schema.fields.people.item), name:value };
-    data.people.push(person);
-    owner[key] = [...(owner[key] || []), person.id];
-    name.value = '';
-    draw();
-  };
-  function draw() {
-    const selected = owner[key] || [];
-    summary.textContent = fieldLabel(spec, key) + (selected.length ? '｜' + selected.map((id) =>
-      data.people.find((person) => person.id === id)?.name).filter(Boolean).join('、') : '');
-    items.replaceChildren(...data.people.map(({ id, name }) => {
-      const label = node('label');
-      label.className = 'toggle';
-      const check = node('input');
-      check.type = 'checkbox';
-      check.checked = selected.includes(id);
-      check.addEventListener('change', () => {
-        const current = owner[key] || [];
-        owner[key] = check.checked ? [...current, id] : current.filter((value) => value !== id);
-        summary.textContent = fieldLabel(spec, key) + '｜' + data.people.filter((person) => owner[key].includes(person.id)).map((person) => person.name).join('、');
+function personNameKey(value) {
+  return value.trim().normalize('NFKC').toLocaleLowerCase('zh-TW');
+}
+function newPerson(data, name) {
+  const person = { id:'person-' + crypto.randomUUID(), name:name.trim() };
+  data.people.push(person);
+  return person;
+}
+function namePattern(person, data) {
+  const escape = (value) => value.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\$&');
+  const duplicate = data.people.some(({id,name}) => id !== person.id && name === person.name);
+  const token = '\\{person:' + escape(person.id) + '\\}';
+  // A token for another person must never be mistaken for a free-text name.
+  return new RegExp(duplicate || person.name.length < 2 ? token : token + '|\\{person:[^{}]+\\}|' + escape(person.name), 'g');
+}
+function rewriteMention(text, person, data, replacement) {
+  return text.replace(namePattern(person,data), (match) =>
+    match.startsWith('{person:') && match !== '{person:' + person.id + '}' ? match : replacement);
+}
+function mentionsPerson(text, person, data) {
+  return rewriteMention(text,person,data,'') !== text;
+}
+
+function personLinks(data, person, schema) {
+  const links = [];
+  function visit(value, spec, owner, key, context, listRecord) {
+    if (value === undefined || spec.private) return;
+    if (spec.type === 'workItem') {
+      if (typeof value === 'string') visit(value,spec.fields.text,owner,key,context,listRecord);
+      else visit(value,{ ...spec, type:'object' },owner,key,context,listRecord);
+      return;
+    }
+    if (spec.type === 'object') {
+      Object.entries(spec.fields).forEach(([field,child]) =>
+        visit(value[field],child,value,field,context,listRecord));
+      return;
+    }
+    if (spec.type === 'list') {
+      value.forEach((item,index) => {
+        const title = spec.item.type === 'object' && (item.name || item.title || item.role || item.label || item.to || item.date || item.place);
+        const path = [...context, title ? namesIn(title,data) : fieldLabel(spec,key)];
+        visit(item,spec.item,value,index,path,{ items:value, item });
       });
-      label.append(check, node('span', name));
-      return label;
-    }));
+      return;
+    }
+    const label = [...context,fieldLabel(spec,key)].filter(Boolean).join(' · ');
+    if (spec.type === 'person' && value === person.id) {
+      const removesRecord = !Array.isArray(owner) && !spec.optional;
+      links.push({
+        label, removesRecord, owner, key,
+        unlink:() => {
+          if (Array.isArray(owner)) owner.splice(owner.indexOf(person.id),1);
+          else if (removesRecord) listRecord.items.splice(listRecord.items.indexOf(listRecord.item),1);
+          else {
+            delete owner[key];
+            // A camera position can be kept with a pending operator.
+            if (key === 'operatorId' && Object.hasOwn(owner,'device') && !owner.operator) owner.operator = '待公布';
+          }
+        }
+      });
+    } else if (spec.type === 'text' && typeof value === 'string' && mentionsPerson(value,person,data)) {
+      links.push({ label, owner, key, text:value, update:(text) => { owner[key] = text; } });
+    }
   }
-  if (key === 'memberIds') {
-    const tools = node('div');
-    tools.className = 'row';
-    tools.append(name, button('新增這位人員並加入', add));
-    box.append(tools);
+  Object.entries(schema.fields).forEach(([key,spec]) => {
+    if (key === 'people') return;
+    const path = spec.type === 'object' ? [spec.label] : [];
+    visit(data[key],spec,data,key,path,null);
+  });
+  return links;
+}
+
+function renamePerson(data, person, name, schema) {
+  const chosen = name.trim();
+  if (!chosen) throw new Error('請輸入姓名。');
+  if (chosen === person.name) return;
+  if (data.people.some((item) => item !== person && personNameKey(item.name) === personNameKey(chosen))) {
+    throw new Error('名單已有這個姓名，請選用現有人員。');
   }
+  // Keep existing assignments linked even when a legacy draft had plain names.
+  personLinks(data,person,schema).filter((link) => link.text).forEach((link) =>
+    link.update(rewriteMention(link.text,person,data,'{person:' + person.id + '}')));
+  person.name = chosen;
+}
+
+function changeCandidate(data, team, person, replacement, promote) {
+  const remaining = (team.candidateIds || []).filter((id) => id !== person.id);
+  team.candidateIds = remaining;
+  if (!promote && replacement && !remaining.includes(replacement.id)) remaining.push(replacement.id);
+  if (promote && !team.memberIds.includes(replacement.id)) team.memberIds.push(replacement.id);
+  const candidates = remaining.map((id) => data.people.find((item) => item.id === id)).filter(Boolean);
+  const update = (text) => (text.match(/[^。！？\n]+[。！？\n]*|[。！？\n]+/g) || [])
+    .map((sentence) => {
+      if (!/待核對|待確認|候選|姓名未確認/.test(sentence) || !mentionsPerson(sentence,person,data)) return sentence;
+      if (replacement && !promote && !mentionsPerson(sentence,replacement,data)) {
+        return rewriteMention(sentence,person,data,'{person:' + replacement.id + '}');
+      }
+      if (!candidates.some((item) => mentionsPerson(sentence,item,data))) return '';
+      const marker = '\u0000';
+      return rewriteMention(sentence,person,data,marker)
+        .replace(/\u0000\s*[、／/]/g,'').replace(/[、／/]\s*\u0000/g,'').replace(/\u0000/g,'');
+    }).join('').trim();
+  if (team.notes) team.notes = team.notes.map(update).filter(Boolean);
+  for (const period of team.periods) {
+    period.items = period.items.flatMap((item) => {
+      const text = update(typeof item === 'string' ? item : item.text);
+      return !text ? [] : [typeof item === 'string' ? text : { ...item, text }];
+    });
+  }
+}
+
+function personPicker(data, { label, selected = () => [], choose, create }) {
+  const wrapper = node('div');
+  wrapper.className = 'person-picker';
+  const field = node('label');
+  field.className = 'field';
+  const input = node('input');
+  input.type = 'search';
+  input.autocomplete = 'off';
+  input.placeholder = '輸入姓名';
+  input.maxLength = 80;
+  field.append(node('span',label),input);
+  const suggestions = node('div');
+  suggestions.className = 'suggestions';
+  const status = node('p');
+  status.className = 'muted';
+  status.setAttribute('aria-live','polite');
+  function finish(action) {
+    action();
+    input.value = '';
+    update();
+    input.focus();
+  }
+  function update() {
+    suggestions.replaceChildren();
+    status.textContent = '';
+    const name = input.value.trim();
+    if (!name) return;
+    const query = personNameKey(name);
+    const matches = data.people.filter((person) => personNameKey(person.name).includes(query));
+    const exact = matches.filter((person) => personNameKey(person.name) === query);
+    if (exact.length) status.textContent = '名單已有這個姓名。請從現有人員選取。';
+    for (const person of [...exact,...matches.filter((item) => !exact.includes(item))].slice(0,6)) {
+      const added = selected().includes(person.id);
+      const option = button(person.name + (added ? '（已加入）' : ''),() => finish(() => choose(person)),'quiet option');
+      option.disabled = added;
+      suggestions.append(option);
+    }
+    if (!exact.length && create) suggestions.append(button('新增「' + name + '」',() => finish(() => create(name))));
+    if (!matches.length && !create) status.textContent = '沒有符合的人員。';
+  }
+  input.addEventListener('input',update);
+  input.addEventListener('keydown',(event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const options = suggestions.querySelectorAll('button:not([disabled])');
+    if (options.length === 1) options[0].click();
+    else options[0]?.focus();
+  });
+  wrapper.append(field,status,suggestions);
+  return { wrapper,input };
+}
+
+function renderMembers(parent, spec, owner, key, path, data, preferred, onChange = () => {}) {
+  const box = node('section');
+  box.className = 'editor-section';
+  const heading = key === 'memberIds' ? '已加入組員' : fieldLabel(spec,key);
+  const tags = node('div');
+  tags.className = 'row member-tags';
+  function draw() {
+    tags.replaceChildren();
+    const selected = owner[key] || [];
+    if (!selected.length) tags.append(node('p','尚無' + (key === 'memberIds' ? '組員' : heading)));
+    selected.forEach((id) => {
+      const person = data.people.find((item) => item.id === id);
+      const tag = button((person?.name || '待公布') + ' ×',() => {
+        owner[key] = selected.filter((value) => value !== id);
+        draw();
+        picker.input.focus();
+      },'member-tag');
+      tag.setAttribute('aria-label','從' + heading + '移除' + person?.name);
+      tags.append(tag);
+    });
+  }
+  const add = (person) => {
+    owner[key] = [...(owner[key] || []),person.id];
+    draw();
+    onChange();
+  };
+  const picker = personPicker(data,{
+    label:key === 'memberIds' ? '新增人員' : '新增' + heading,
+    selected:() => owner[key] || [], choose:add,
+    create:(name) => add(newPerson(data,name))
+  });
+  box.append(node('h3',heading),tags,picker.wrapper);
   parent.append(box);
+  if (same(path,preferred)) transaction.focus = picker.input;
+  draw();
+}
+
+function renderLinks(parent, data, person, { onChange } = {}) {
+  const list = node('ul');
+  list.className = 'relations';
+  function draw() {
+    const links = personLinks(data,person,model.schema);
+    list.replaceChildren();
+    if (!links.length) {
+      const empty = node('li','目前沒有其他工作關聯。');
+      empty.className = 'muted';
+      list.append(empty);
+    }
+    links.forEach((link) => {
+      const row = node('li');
+      row.append(node('p',link.label));
+      if (link.text) {
+        const details = node('details');
+        const field = node('label');
+        field.className = 'field';
+        const value = node('textarea');
+        value.rows = 2;
+        const original = namesIn(link.text,data);
+        value.value = original;
+        field.append(node('span','調整這段文字以解除姓名關聯'),value);
+        const feedback = node('p');
+        feedback.className = 'error';
+        details.append(node('summary',original),field,button('套用文字',() => {
+          if (!value.value.trim() || mentionsPerson(value.value,person,data) || value.value === original) {
+            feedback.textContent = '請調整這段文字，保留工作說明並移除這個姓名。';
+            return;
+          }
+          link.update(value.value.trim());
+          draw();
+        }),feedback);
+        row.append(details);
+      } else row.append(button('解除此關聯',async () => {
+        if (link.removesRecord && !await confirmAction('解除後會移除這筆工作安排。確定繼續？')) return;
+        link.unlink();
+        draw();
+      },'quiet danger'));
+      list.append(row);
+    });
+    onChange?.(links);
+  }
+  parent.append(list);
+  draw();
+}
+
+function renderCandidates(parent, team, data, syncRoster) {
+  const section = node('section');
+  section.className = 'editor-section';
+  const cards = node('div');
+  const notices = node('div');
+  const openRelations = new Map();
+  function followUp(person) {
+    if (!personLinks(data,person,model.schema).length) return;
+    const box = node('details');
+    box.open = true;
+    box.append(node('summary',person.name + '的其他工作關聯'),
+      node('p','已更新本組待確認名單。以下關聯仍保留，可逐筆檢視或解除。'));
+    renderLinks(box,data,person);
+    openRelations.get(person.id)?.remove();
+    openRelations.set(person.id,box);
+    notices.append(box);
+  }
+  function draw() {
+    cards.replaceChildren();
+    const ids = team.candidateIds || [];
+    if (!ids.length) cards.append(node('p','目前沒有待確認人員。'));
+    ids.forEach((id) => {
+      const person = data.people.find((item) => item.id === id);
+      if (!person) return;
+      const row = node('details');
+      row.className = 'candidate';
+      const title = node('summary',person.name);
+      title.setAttribute('aria-label','編輯待確認人員 ' + person.name);
+      const name = node('input');
+      name.value = person.name;
+      name.maxLength = 80;
+      const label = node('label');
+      label.className = 'field';
+      label.append(node('span','修改姓名'),name);
+      const error = node('p');
+      error.className = 'error';
+      const actions = node('div');
+      actions.className = 'row';
+      const remove = async () => {
+        if (!await confirmAction('從「' + namesIn(team.name,data) + '」移除待確認人員「' + person.name + '」及本組的相關待核對備註？')) return;
+        changeCandidate(data,team,person,null,false);
+        draw();
+        followUp(person);
+      };
+      const promote = () => {
+        changeCandidate(data,team,person,person,true);
+        syncRoster();
+        draw();
+      };
+      const updateName = () => {
+        try {
+          renamePerson(data,person,name.value,model.schema);
+          title.textContent = person.name;
+          title.setAttribute('aria-label','編輯待確認人員 ' + person.name);
+          error.textContent = '';
+          name.removeAttribute('aria-invalid');
+          syncRoster();
+        } catch (cause) {
+          name.setAttribute('aria-invalid','true');
+          error.textContent = cause.message;
+        }
+      };
+      name.addEventListener('change',updateName);
+      actions.append(button('確認為正式組員',promote),button('刪除待確認',remove,'quiet danger'));
+      const replace = node('details');
+      replace.append(node('summary','改選現有人員'));
+      const picker = personPicker(data,{
+        label:'對應的現有人員', selected:() => [id],
+        choose:(match) => {
+          changeCandidate(data,team,person,match,false);
+          draw();
+          followUp(person);
+        }
+      });
+      replace.append(picker.wrapper);
+      row.append(title,label,actions,error,replace);
+      cards.append(row);
+    });
+  }
+  function add(person) {
+    team.candidateIds = [...(team.candidateIds || []),person.id];
+    draw();
+    syncRoster();
+  }
+  const picker = personPicker(data,{
+    label:'新增待確認人員', selected:() => team.candidateIds || [],
+    choose:add, create:(name) => add(newPerson(data,name))
+  });
+  section.append(node('h3','待確認人員'),cards,picker.wrapper,notices);
+  parent.append(section);
   draw();
 }
 
@@ -514,10 +851,218 @@ function renderList(parent, spec, owner, key, path, data, preferred) {
   draw(next, preferred);
 }
 
+function textEditor(label, value, input, multiline = false) {
+  const field = node('label');
+  field.className = 'field';
+  const control = node(multiline ? 'textarea' : 'input');
+  control.value = value || '';
+  if (multiline) control.rows = 2;
+  control.addEventListener('input',() => input(control.value));
+  field.append(node('span',label),control);
+  return { field,control };
+}
+
+function renderTeamWork(parent, team, data, preferred) {
+  const section = node('section');
+  section.className = 'editor-section';
+  const periods = node('div');
+  periods.className = 'periods';
+  function draw(openIndex, taskIndex) {
+    periods.replaceChildren();
+    if (!team.periods.length) periods.append(node('p','尚無工作內容。'));
+    team.periods.forEach((period,index) => {
+      const row = node('details');
+      row.name = 'edit-work-period';
+      row.className = 'edit-period';
+      row.open = index === openIndex;
+      const title = node('summary');
+      const updateTitle = () => {
+        const event = data.schedule.flatMap((day) => day.events).find(({id}) => id === period.scheduleId);
+        title.textContent = [event?.time,namesIn(period.label,data) || '新工作時段',period.hidden && '僅管理端顯示'].filter(Boolean).join('　');
+      };
+      const preview = node('div');
+      preview.className = 'period-preview';
+      const list = node('ul');
+      list.className = 'task-lines';
+      const renderTasks = (openTask) => {
+        list.replaceChildren();
+        period.items.forEach((item,task) => {
+          const value = typeof item === 'string' ? { text:item } : item;
+          const li = node('li');
+          const details = node('details');
+          details.name = 'edit-work-task';
+          details.open = row.open && task === openTask;
+          const summary = node('summary');
+          const taskTitle = () => {
+            summary.textContent = (value.hidden ? '已隱藏 · ' : '') + (namesIn(value.text,data) || '新工作');
+          };
+          const field = textEditor('工作說明',namesIn(value.text,data),(text) => {
+            value.text = text;
+            period.items[task] = value;
+            taskTitle();
+          },true);
+          const label = node('label');
+          label.className = 'toggle';
+          const visible = node('input');
+          visible.type = 'checkbox';
+          visible.checked = !value.hidden;
+          visible.onchange = () => { value.hidden = !visible.checked; period.items[task] = value; taskTitle(); };
+          label.append(visible,node('span','顯示於網站'));
+          details.append(summary,field.field,label);
+          taskTitle();
+          entryTools(details,period.items,task,summary.textContent || '工作',renderTasks);
+          li.append(details);
+          list.append(li);
+          if (details.open) transaction.focus = field.control;
+        });
+      };
+      const when = textEditor('時段或時間',namesIn(period.label,data),(text) => { period.label = text; updateTitle(); });
+      const options = node('details');
+      options.className = 'period-options';
+      options.append(node('summary','時段設定'));
+      const linked = node('select');
+      linked.append(new Option('使用上方時段文字',''));
+      optionsFor('event',data).forEach(([id,text]) => linked.append(new Option(text,id)));
+      linked.value = period.scheduleId || '';
+      linked.onchange = () => {
+        if (linked.value) period.scheduleId = linked.value;
+        else delete period.scheduleId;
+        updateTitle();
+      };
+      const linkField = node('label');
+      linkField.className = 'field';
+      linkField.append(node('span','沿用總流程時間'),linked);
+      const show = node('label');
+      show.className = 'toggle';
+      const showPeriod = node('input');
+      showPeriod.type = 'checkbox';
+      showPeriod.checked = !period.hidden;
+      showPeriod.onchange = () => { period.hidden = !showPeriod.checked; updateTitle(); };
+      show.append(showPeriod,node('span','整個時段顯示於網站'));
+      options.append(linkField,show);
+      entryTools(options,team.periods,index,'這個工作時段',draw);
+      preview.append(when.field,list,button('新增工作',() => {
+        period.items.push({ text:'' });
+        renderTasks(period.items.length - 1);
+        transaction.focus?.focus();
+      }),options);
+      row.append(title,preview);
+      periods.append(row);
+      updateTitle();
+      renderTasks(taskIndex);
+      if (row.open && taskIndex === undefined) transaction.focus = when.control;
+    });
+  }
+  section.append(node('h3','工作內容'),periods,button('新增工作時段',() => {
+    team.periods.push({ label:'',items:[] });
+    draw(team.periods.length - 1);
+    transaction.focus?.focus();
+  }));
+  parent.append(section);
+  draw(preferred?.[0] === 'periods' ? preferred[1] : undefined,preferred?.[3]);
+}
+
+function renderTeamForm(parent, team, data, preferred) {
+  const spec = model.schema.fields.teams.item.fields;
+  const field = textEditor('組別名稱',namesIn(team.name,data),(name) => { team.name = name; });
+  parent.append(field.field);
+  if (preferred?.[0] === 'name') transaction.focus = field.control;
+  const label = node('label');
+  label.className = 'field';
+  const leader = node('select');
+  function drawLeaders() {
+    leader.replaceChildren(new Option('未指定負責人',''),...data.people.map(({id,name}) => new Option(name,id)));
+    leader.value = team.leaderId || '';
+  }
+  leader.onchange = () => {
+    if (leader.value) team.leaderId = leader.value;
+    else delete team.leaderId;
+  };
+  label.append(node('span','組別負責人'),leader);
+  parent.append(label);
+  drawLeaders();
+  const members = node('div');
+  function drawMembers() {
+    members.replaceChildren();
+    renderMembers(members,spec.memberIds,team,'memberIds',['memberIds'],data,preferred,drawLeaders);
+  }
+  drawMembers();
+  parent.append(members);
+  renderCandidates(parent,team,data,() => { drawMembers(); drawLeaders(); });
+  renderTeamWork(parent,team,data,preferred);
+  parent.append(textEditor('完成期限',namesIn(team.deadline,data),(value) => { team.deadline = value; }).field);
+  const display = node('section');
+  display.className = 'editor-section';
+  display.append(node('h3','顯示設定'));
+  for (const key of ['hidden','indexHidden']) renderField(display,spec[key],team,key,[key],data,preferred);
+  parent.append(display);
+  const extra = node('details');
+  extra.append(node('summary','其他補充資訊'));
+  renderMembers(extra,spec.supportIds,team,'supportIds',['supportIds'],data,preferred,drawLeaders);
+  for (const key of ['notes','status']) renderField(extra,spec[key],team,key,[key],data,preferred);
+  parent.append(extra);
+}
+
+function showPeople() {
+  const body = panel('人員管理');
+  body.append(button('新增工作人員',() => editPerson(),'primary'));
+  const grid = node('ul');
+  grid.className = 'people-list';
+  draft.people.forEach((person) => {
+    const row = node('li');
+    row.append(button(person.name,() => editPerson(person.id),'quiet option'));
+    grid.append(row);
+  });
+  body.append(grid);
+}
+
+function editPerson(id) {
+  const original = draft.people.find((person) => person.id === id);
+  edit(original ? '編輯人員 · ' + original.name : '新增工作人員',(parent,data) => {
+    const person = data.people.find((item) => item.id === id);
+    let name = person?.name || '';
+    const field = textEditor('姓名',name,(value) => { name = value; hint(); });
+    field.control.maxLength = 80;
+    const warning = node('p');
+    warning.className = 'error';
+    function hint() {
+      warning.textContent = data.people.some((item) => item !== person && personNameKey(item.name) === personNameKey(name))
+        ? '名單已有這個姓名，請選用現有人員。' : '';
+    }
+    parent.append(field.field,warning);
+    transaction.focus = field.control;
+    transaction.pending = () => name !== (original?.name || '');
+    if (!person) {
+      transaction.prepare = (candidate) => {
+        if (!name.trim() || warning.textContent) throw new Error(warning.textContent || '請輸入姓名。');
+        newPerson(candidate,name);
+      };
+      return;
+    }
+    transaction.prepare = (candidate) => {
+      const item = candidate.people.find((entry) => entry.id === id);
+      if (item) renamePerson(candidate,item,name,model.schema);
+    };
+    const remove = button('刪除此人員',async () => {
+      if (!await confirmAction('確定從全站人員名單刪除「' + name + '」？')) return;
+      data.people.splice(data.people.indexOf(person),1);
+      parent.replaceChildren(node('p','此人員將從名單移除。按「套用修改」更新草稿。'));
+    },'danger');
+    const note = node('p');
+    note.className = 'muted';
+    parent.append(node('h3','目前的組別與工作關聯'));
+    renderLinks(parent,data,person,{ onChange:(links) => {
+      remove.disabled = links.length > 0;
+      note.textContent = links.length ? '刪除整位人員前，請逐筆解除仍在使用的關聯。' : '目前可以刪除此人員。';
+    } });
+    parent.append(note,remove);
+  });
+}
+
 function edit(title, draw, preferred, privateFields = false) {
   const data = copy(draft);
   const body = panel(title);
-  transaction = { data, private:privateFields, modified:() => !same(data,draft) };
+  transaction = { data, private:privateFields, modified:() => !same(data,draft) || Boolean(transaction.pending?.()) };
   const fields = node('div');
   fields.className = 'fields';
   draw(fields, data, preferred);
@@ -529,14 +1074,18 @@ function edit(title, draw, preferred, privateFields = false) {
   body.append(errorText);
   const apply = button('套用修改', async () => {
     if (checking) return;
-    if (!transaction.modified()) { dismissPanel(); return; }
+    if (!transaction.modified() && !transaction.prepare) { dismissPanel(); return; }
     checking = true;
     get('panel').inert = true;
     updateState();
     errorText.textContent = '';
     try {
-      const projected = await rpc('preview', { data });
-      draft = data;
+      if (fields.querySelector('[aria-invalid="true"]')) throw new Error('請先修正標示的人員姓名。');
+      const candidate = copy(data);
+      transaction.prepare?.(candidate);
+      if (same(candidate,draft)) { dismissPanel(); return; }
+      const projected = await rpc('preview', { data:candidate });
+      draft = candidate;
       visibleDraft = projected;
       dirty = true;
       dismissPanel();
@@ -544,6 +1093,7 @@ function edit(title, draw, preferred, privateFields = false) {
       message();
     } catch (error) {
       errorText.textContent = '無法套用。' + (error.message || String(error));
+      errorText.scrollIntoView({ block:'nearest' });
     } finally {
       checking = false;
       get('panel').inert = false;
@@ -561,11 +1111,11 @@ function editRecord(area, id, field, target = {}, create = false) {
     if (area === 'event') return data.schedule.find((day) => day.id === weddingDay?.id)?.events;
     if (area === 'team') return target.reception || teamCollections(data)[1].some((item) => item.id === id)
       ? (data.reception.groups ||= []) : data.teams;
-    return data[area === 'person' ? 'people' : 'cameraPositions'];
+    return data.cameraPositions;
   };
   const specs = model.schema.fields;
   const spec = area === 'event' ? specs.schedule.item.fields.events.item
-    : area === 'team' ? specs.teams.item : specs[area === 'person' ? 'people' : 'cameraPositions'].item;
+    : area === 'team' ? specs.teams.item : specs.cameraPositions.item;
   const original = area === 'event' ? draft.schedule.flatMap(({events}) => events).find((item) => item.id === id)
     : collection(copy(draft))?.find((item) => item.id === id);
   if (!original && !create) return;
@@ -586,8 +1136,9 @@ function editRecord(area, id, field, target = {}, create = false) {
     if (!list) { parent.append(node('p','請先在進階設定新增婚禮日期。')); return; }
     const index = create ? list.push(fresh(spec)) - 1 : list.findIndex((item) => item.id === id);
     const record = list[index];
-    const extras = { event:['overviewHidden','guideTeamIds','featured','details','note'], team:['supportIds','candidateIds','notes','indexHidden'] }[area] || [];
-    Object.entries(spec.fields).filter(([key]) => !extras.includes(key))
+    const extras = area === 'event' ? ['overviewHidden','guideTeamIds','featured','details','note'] : [];
+    if (area === 'team') renderTeamForm(parent,record,data,preferred);
+    else Object.entries(spec.fields).filter(([key]) => !extras.includes(key))
       .forEach(([key, definition]) => renderField(parent, definition, record, key, [key], data, preferred));
     if (extras.length) {
       const options = node('details');
@@ -606,19 +1157,22 @@ function editRecord(area, id, field, target = {}, create = false) {
         parent.replaceChildren(node('p','此項目將從草稿刪除。請套用修改。'));
       } else entryTools(parent, list, next, titleFor(record,spec,next,data), refreshTools);
     };
-    if (!create) refreshTools(index);
-    if (area === 'person') {
-      const input = parent.querySelector('input');
-      const warning = node('p');
-      warning.className = 'muted';
-      input?.addEventListener('input', () => {
-        const value = input.value.trim();
-        warning.textContent = data.people.some((item) => item.id !== record.id && item.name.trim() === value)
-          ? '已有同名人員。請確認是否是另一個人。' : '';
-      });
-      parent.append(warning);
+    if (!create && area === 'team') {
+      const controls = node('details');
+      controls.append(node('summary','組別順序及刪除'));
+      parent.append(controls);
+      const redraw = (next) => {
+        if (next === undefined) parent.replaceChildren(node('p','此組別將從草稿刪除。請套用修改。'));
+        else {
+          controls.querySelector('.entry-tools')?.remove();
+          entryTools(controls,list,next,namesIn(record.name,data),redraw);
+        }
+      };
+      redraw(index);
+    } else if (!create) {
+      refreshTools(index);
     }
-  }, preferred, area === 'person' && target.advanced === true);
+  }, preferred);
 }
 function editArea(area, field, target) {
   const [title, ...keys] = areas[area];
@@ -658,9 +1212,9 @@ function optionsList(parent, records, choose, titles) {
 }
 function showRecords(kind, records, title, options = {}) {
   const body = panel(title);
-  const label = { event:'流程項目', team:'工作組別', camera:'直播機位', person:'工作人員' }[kind];
+  const label = { event:'流程項目', team:'工作組別', camera:'直播機位' }[kind];
   body.append(button('新增' + label, () => editRecord(kind, null, kind === 'event' ? 'time' : 'name', options, true)));
-  optionsList(body, records, ({ id }) => editRecord(kind, id, kind === 'person' ? 'name' : undefined, options),
+  optionsList(body, records, ({ id }) => editRecord(kind, id, undefined, options),
     (item) => (item.hidden || kind === 'event' && item.overviewHidden ? '已隱藏｜' : '') +
       (kind === 'event' ? item.time + '　' : kind === 'camera' ? '機位 ' : '') +
       namesIn(item.name || item.title || item.label || item.operator || draft.people.find(({ id }) => id === item.operatorId)?.name || '固定機位', draft));
@@ -687,7 +1241,6 @@ function showLibrary() {
     ['婚宴工作組別', () => showRecords('team',draft.reception.groups || [],'婚宴工作組別',{ reception:true })]
   ] : [
     ['工作組別及未顯示的組別', () => showRecords('team',draft.teams,'工作組別')],
-    ['工作人員名單', () => showRecords('person',draft.people,'工作人員名單')],
     ['直播機位', () => showRecords('camera',draft.cameraPositions,'直播機位')],
     ...['management','assignments','ceremony','avCues','avChecklist','photoGroups','photoServices','cleanup','venues','seating']
       .map((area) => [areas[area][0], () => editArea(area)])
@@ -881,13 +1434,14 @@ function reviewChanges(before, after, schema) {
     if (spec.type === 'list' && ['object','workItem'].includes(spec.item.type)) {
       const oldItems = a || [];
       const { pairs,removed } = pairRecords(oldItems,b || []);
+      const context = ['people','management','assignments'].includes(key) ? [...path,label] : path;
       for (const { item,index } of removed) {
-        add([...path,titleFor(item,spec.item,index,before),'已刪除'].join('／'),describeChange(item,spec.item,before),'—');
+        add([...context,titleFor(item,spec.item,index,before),'已刪除'].join('／'),describeChange(item,spec.item,before),'—');
       }
       for (const {item,oldIndex,newIndex} of pairs) {
         const name = titleFor(item,spec.item,newIndex,after);
-        if (oldIndex < 0) add([...path,name,'新增'].join('／'),'—',describeChange(item,spec.item,after));
-        else walk(oldItems[oldIndex],item,{ ...spec.item,label:name },path,'');
+        if (oldIndex < 0) add([...context,name,'新增'].join('／'),'—',describeChange(item,spec.item,after));
+        else walk(oldItems[oldIndex],item,{ ...spec.item,label:name },context,'');
       }
       const matched = pairs.filter(({oldIndex}) => oldIndex >= 0);
       const oldOrder = [...matched].sort((a,b) => a.oldIndex - b.oldIndex);
@@ -904,6 +1458,19 @@ function reviewChanges(before, after, schema) {
       if (!same(oldText,newText)) add(title,oldText.join('\n') || '—',newText.join('\n') || '—');
       return;
     }
+    if (spec.type === 'list' && spec.item.type === 'person' && !same(a || [],b || [])) {
+      const oldIds = a || [];
+      const newIds = b || [];
+      const previous = oldIds.filter((id) => !newIds.includes(id));
+      const added = newIds.filter((id) => !oldIds.includes(id));
+      const group = path.join('／');
+      const role = key === 'candidateIds' ? '待確認人員' : label;
+      if (previous.length) add(group + '／已移除' + role + '：' + describeChange(previous,spec,before),
+        describeChange(oldIds,spec,before),describeChange(newIds,spec,after));
+      if (added.length) add(group + '／已新增' + role + '：' + describeChange(added,spec,after),
+        describeChange(oldIds,spec,before),describeChange(newIds,spec,after));
+      if (previous.length || added.length) return;
+    }
     if (same(a,b)) return;
     const oldText = describeChange(a,spec,before);
     const newText = describeChange(b,spec,after);
@@ -913,6 +1480,49 @@ function reviewChanges(before, after, schema) {
   if (privateChanged) add('內部備註','上一版備註','已更新，僅管理者可見');
   return entries;
 }
+
+function checkPublicVersion(release) {
+  if (!session?.ready) return Promise.resolve({ error:'預覽尚未連線' });
+  const request = crypto.randomUUID();
+  return new Promise((resolve) => {
+    const finish = (result) => {
+      clearTimeout(timer);
+      pendingVerification = null;
+      resolve(result);
+    };
+    const timer = setTimeout(() => finish({ error:'公開資料讀取逾時' }),12000);
+    pendingVerification = { request,finish };
+    sendPreview('staff-preview-verify',{ request, version:release.version, expected:release.data });
+  });
+}
+
+async function verifyPublication(release) {
+  release.verified = null;
+  updateState();
+  let result;
+  try {
+    if (!release.data) {
+      const saved = await rpc('export',{ version:release.version });
+      release.data = await rpc('preview',{ data:saved.data });
+    }
+    result = await checkPublicVersion(release);
+    if (result.error === '預覽尚未連線' || Number.isSafeInteger(result.version) && result.version < release.version) {
+      await new Promise((resolve) => setTimeout(resolve,1250));
+      result = await checkPublicVersion(release);
+    }
+  } catch (error) {
+    result = { error:error.message || String(error) };
+  }
+  release.verified = result.matches === true;
+  updateState();
+  if (release.verified) {
+    message('發布成功，已確認公開網站取得這次更新。');
+    return;
+  }
+  const reason = result.error || (result.version > release.version ? '公開端已有較新的版本' : '公開資料與這次發布的版本或內容不同');
+  message('發布已寫入，公開驗證失敗。' + reason + '。',true);
+}
+get('verify-again').onclick = () => perform(() => verifyPublication(lastPublication),'公開驗證失敗');
 
 function showReview(comparison) {
   const body = panel('發布前確認');
@@ -940,8 +1550,10 @@ function showReview(comparison) {
     if (busy) return;
     dismissPanel();
     await perform(async () => {
-      await applyState(await rpc('publish',{ revision:comparison.revision, summary:summary.value }));
-      message('發布成功。工作人員將讀取這次更新。');
+      const state = await rpc('publish',{ revision:comparison.revision, summary:summary.value });
+      lastPublication = { version:state.published.version, verified:null };
+      lastPublication.data = await applyState(state);
+      await verifyPublication(lastPublication);
     },'發布失敗，伺服器草稿仍保留');
   },'primary'));
 }

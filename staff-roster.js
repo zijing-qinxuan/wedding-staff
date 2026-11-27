@@ -6,7 +6,7 @@ const staffRoster = (() => {
   function teamRoles(team, memberIds = team.memberIds) {
     const roles = [
       ["負責人", team.leaderId ? [team.leaderId] : []],
-      ["組員", memberIds],
+      ["組員", (memberIds || []).filter((id) => id !== team.leaderId)],
       ["支援", team.supportIds],
       ["待核對", team.candidateIds]
     ];

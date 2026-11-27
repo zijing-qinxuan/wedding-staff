@@ -168,7 +168,7 @@ test("overview, guide routing, roster visibility, and private work items are ind
   assert.doesNotMatch(JSON.stringify(api.publicStaff_(draft)), /新秘助手|private-work-item/);
 });
 
-test("every published team keeps its members and leaders by role, including dual assignments", () => {
+test("published association data stays intact and the roster only suppresses duplicate members within their own team", () => {
   const draft = newDraft();
   const published = api.publicStaff_(draft);
   for (const team of draft.teams) {
@@ -178,7 +178,7 @@ test("every published team keeps its members and leaders by role, including dual
     assert.deepEqual([...(output.supportIds || [])], team.supportIds || []);
     assert.deepEqual([...(output.candidateIds || [])], team.candidateIds || []);
     const roles = new Map(staffRoster.teamRoles(output));
-    assert.deepEqual(roles.get("組員") || [], team.memberIds);
+    assert.deepEqual(roles.get("組員") || [], team.memberIds.filter((id) => id !== team.leaderId));
     assert.ok(team.memberIds.every((id) => published.people.some((person) => person.id === id)));
   }
   const member = "fixture-person";
@@ -186,7 +186,7 @@ test("every published team keeps its members and leaders by role, including dual
     leaderId: member, memberIds: [member, member], supportIds: [member, member], candidateIds: [member]
   };
   assert.deepEqual(staffRoster.teamRoles(repeated), [
-    ["負責人", [member]], ["組員", [member]], ["支援", [member]], ["待核對", [member]]
+    ["負責人", [member]], ["支援", [member]], ["待核對", [member]]
   ]);
   assert.deepEqual(staffRoster.teamRoles({ memberIds: [member] }), [["組員", [member]]]);
 });
@@ -253,6 +253,45 @@ test("live preview verifies the parent, locks its origin, and only enables editi
   assert.equal(destination, "teams");
 });
 
+test("preview verifies the public response by both revision and content", async () => {
+  const nonce = "01234567-89ab-4cde-9f01-23456789abcd";
+  const posted = [];
+  const parent = { postMessage: (data) => posted.push(data) };
+  let listener;
+  let current = baseline;
+  let reads = 0;
+  const window = {
+    weddingStaffConfig: { publishedUrl:"https://script.google.com/macros/s/verify/exec" },
+    parent, addEventListener: (_, handler) => { listener = handler; }
+  };
+  vm.runInNewContext(read("public-data.js"), {
+    window, location: { hash:"#staff-preview=" + nonce }, URL, AbortController, setTimeout, clearTimeout,
+    fetch: async (url, options) => {
+      reads++;
+      assert.equal(options.cache,"no-store");
+      return { ok:true, json:async () => ({
+        ok:true, kind:"wedding-staff-published", version:9, updatedAt:"2026-11-27T11:00:00Z", data:current
+      }) };
+    }
+  });
+  window.weddingStaffSource.previewData(() => {});
+  const origin = "https://test-script.googleusercontent.com";
+  const send = (message) => listener({ source:parent, origin, data:{ ...message, nonce } });
+  const verify = { type:"staff-preview-verify", request:"verification", version:9, expected:baseline };
+  send(verify);
+  assert.equal(reads,0);
+  send({ type:"staff-preview-data", data:baseline });
+  send(verify);
+  await new Promise(setImmediate);
+  assert.equal(posted.at(-1).matches,true);
+  assert.equal(posted.at(-1).type,"staff-preview-verified");
+  assert.equal(posted.at(-1).data,undefined);
+  current = { ...baseline, weddingInfo: { ...baseline.weddingInfo, title:"不同內容" } };
+  send(verify);
+  await new Promise(setImmediate);
+  assert.equal(posted.at(-1).matches,false);
+});
+
 test("the server checks Google identity for every admin operation", () => {
   const server = simulate();
   for (const address of ["", "intruder@example.test"]) {
@@ -306,6 +345,46 @@ test("editor compares changes in Chinese and previews the exact public projectio
   assert.throws(() => server.rpc("publish", { revision:compare.revision }), /版本衝突/);
   server.rpc("publish", { revision:later.revision });
   assert.deepEqual(server.json().data,projection);
+});
+
+test("candidate management clears duplicated notes, exposes genuine work links, and keeps unrelated people and tasks", () => {
+  const script = read("apps-script/admin/Editor.html").match(/<script>([\s\S]+)<\/script>/)[1].replace(/\nreload\(\);\s*$/, "");
+  const inertElement = { addEventListener() {} };
+  const editor = vm.runInNewContext(script + "\n({ personLinks, changeCandidate, renamePerson, reviewChanges });", {
+    document: { getElementById: () => ({ ...inertElement }) },
+    window: inertElement
+  });
+  const draft = newDraft();
+  const original = clone(draft);
+  const schema = api.staffSchema_();
+  const team = draft.teams.find(({id}) => id === "sign-language");
+  const [first, second] = team.candidateIds.map((id) => draft.people.find((person) => person.id === id));
+  draft.assignments.push({ personId:second.id, from:"原崗位", to:"手語詩歌傳譯", trigger:"唱詩歌前", returnTo:"回原崗位" });
+
+  editor.changeCandidate(draft,team,second,null,false);
+  assert.deepEqual([...team.candidateIds],[first.id]);
+  assert.doesNotMatch(team.notes.join(""), /hui-lin-interpreter/);
+  const links = editor.personLinks(draft,second,schema);
+  assert.equal(links.length,1);
+  assert.match(links[0].label,/手語詩歌傳譯/);
+  links[0].unlink();
+  assert.equal(editor.personLinks(draft,second,schema).length,0);
+  assert.doesNotMatch(JSON.stringify(api.publicStaff_(draft)),/慧琳/);
+  assert(draft.people.some((person) => person.id === second.id));
+
+  editor.renamePerson(draft,first,"測試傳譯員",schema);
+  assert.match(JSON.stringify(api.publicStaff_(draft)),/測試傳譯員/);
+  editor.changeCandidate(draft,team,first,first,true);
+  assert.equal(team.candidateIds.length,0);
+  assert(team.memberIds.includes(first.id));
+  assert.deepEqual([...team.notes],["固定攝影機不需為傳譯改變構圖。"]);
+  const projection = JSON.stringify(api.publicStaff_(draft));
+  assert.doesNotMatch(projection,/待核對；|慧玲|慧琳/);
+  assert.match(projection,/慧霖/);
+  assert.throws(() => editor.renamePerson(draft,first,"慧霖",schema), /名單已有/);
+  const changes = editor.reviewChanges(original,draft,schema);
+  assert(changes.some(({ title }) => title.includes("已移除待確認人員：慧玲、慧琳")));
+  assert(changes.some(({ title }) => title.includes("已新增組員：測試傳譯員")));
 });
 
 test("public reader distinguishes a no-data reply from a failed connection", async () => {

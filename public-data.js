@@ -81,8 +81,8 @@
     });
   }
 
-  async function getLatest() {
-    if (!enabled || preview) throw new Error("公開端點未設定");
+  async function readPublished() {
+    if (!enabled) throw new Error("公開端點未設定");
     const payload = await readJson().catch(readJsonp);
     if (payload?.ok === false && payload.error === "目前無法取得已發布資料。") {
       const error = new Error("公開端已回應，暫無可讀取的發布資料");
@@ -91,6 +91,24 @@
     }
     if (!published(payload)) throw new Error("公開端回應格式不符");
     return payload;
+  }
+
+  function getLatest() {
+    return preview ? Promise.reject(new Error("預覽模式")) : readPublished();
+  }
+
+  async function verifyPublication(message, origin) {
+    let result;
+    try {
+      const latest = await readPublished();
+      result = {
+        version: latest.version,
+        matches: latest.version === message.version && JSON.stringify(latest.data) === JSON.stringify(message.expected)
+      };
+    } catch (error) {
+      result = { matches: false, error: error.message };
+    }
+    window.parent.postMessage({ type: "staff-preview-verified", nonce, request: message.request, ...result }, origin);
   }
 
   function previewData(onData, onNavigate) {
@@ -108,6 +126,9 @@
         window.parent.postMessage({ type: "staff-preview-rendered", nonce }, editorOrigin);
       } else if (editorOrigin && message.type === "staff-preview-navigate") {
         onNavigate?.(message.section);
+      } else if (editorOrigin && message.type === "staff-preview-verify" &&
+          typeof message.request === "string" && Number.isSafeInteger(message.version) && isData(message.expected)) {
+        verifyPublication(message, editorOrigin);
       }
     }
     window.addEventListener("message", receive);

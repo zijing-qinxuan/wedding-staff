@@ -15,9 +15,9 @@
   let eventsById;
   let editSelection;
 
-  function editAt(parent, label, target) {
+  function editAt(parent, label, target, caption = "編輯") {
     if (!editSelection) return;
-    const edit = element("button", "staff-edit-button", "✎");
+    const edit = element("button", "staff-edit-button", caption);
     edit.type = "button";
     edit.setAttribute("aria-label", "編輯" + label);
     edit.title = "編輯" + label;
@@ -92,11 +92,12 @@
       if (id) row.id = "event-" + id;
       const description = element("dd", "", eventLabel(title, status));
       paragraph(description, detail, "muted");
-      const clock = element("dt", "clock", eventsById.get(scheduleId)?.time || time);
+      const linked = eventsById.get(scheduleId);
+      const displayedTime = linked?.time || time;
       const target = id ? { area: "event", id } : section && { area: section, index: previewIndex };
-      if (target) {
-        const linked = eventsById.get(scheduleId);
-        editAt(clock, title + "時間", { ...(linked ? { area: "event", id: linked.id } : target), field: "time" });
+      const clock = element("dt", "clock", editSelection && target ? "" : displayedTime);
+      if (target && editSelection) {
+        editAt(clock, title + "時間", { ...(linked ? { area: "event", id: linked.id } : target), field: "time" }, displayedTime);
         editAt(description, title, id ? { ...target, field: "overviewTitle", overviewLabel: title } : { ...target, field: "label" });
       }
       row.append(clock, description);
@@ -173,16 +174,26 @@
     return ids.length ? ids.map(personName).join("、") : "待公布";
   }
 
-  function rosterText(roles) {
-    return roles.map(([label, ids]) => label + " " + roleNames(ids)).join("｜");
+  function appendRoles(parent, roles) {
+    if (!roles.length) {
+      parent.append(document.createTextNode("待公布"));
+      return;
+    }
+    const tags = element("span", "roster-roles");
+    roles.forEach(([label, ids]) => {
+      const tag = element("span", "roster-role");
+      tag.append(element("span", "roster-caption", label), document.createTextNode(" " + roleNames(ids)));
+      tags.append(tag);
+    });
+    parent.append(tags);
   }
 
-  function indexEntry(parent, team, label, text) {
-    const entry = element("p");
+  function indexEntry(parent, team, label, roles) {
+    const entry = element("p", "index-entry");
     entry.dataset.teamId = team.id;
-    if (label) entry.append(element("span", "roster-label", label + "　"));
-    entry.append(document.createTextNode(text));
-    editAt(entry, team.name + "人員", { area: "team", id: team.id, field: "memberIds" });
+    if (label) entry.append(element("span", "roster-label", label));
+    appendRoles(entry, roles);
+    editAt(entry, team.name + "人員", { area: "team", id: team.id, field: "memberIds" }, "編輯人員");
     parent.append(entry);
   }
 
@@ -193,18 +204,20 @@
       if (!teams.length && !guide.indexVisible) return;
       const row = element("div", "index-row");
       const title = element("dt");
-      title.append(link("guide-" + guide.id, guide.title));
+      title.append(element("h3", "", guide.title));
+      if (guide.leader) paragraph(title, "總負責人 " + personName(guide.leader), "index-lead");
+      const action = link("guide-" + guide.id, "查看指南", "index-link");
+      action.setAttribute("aria-label", "查看" + guide.title + "指南");
+      title.append(action);
       const names = element("dd");
-      if (guide.leader) paragraph(names, "負責人 " + personName(guide.leader));
       teams.forEach((team) => {
         const label = teams.length > 1 || team.name !== guide.title ? team.name : "";
         const distribution = staffRoster.distribution(team, people);
         if (distribution) {
-          for (const [role, ids] of distribution.roles) indexEntry(names, team, role, roleNames(ids));
           const otherRoles = staffRoster.teamRoles(team, distribution.unassigned);
-          if (otherRoles.length) indexEntry(names, team, label, rosterText(otherRoles));
+          indexEntry(names, team, label, [...distribution.roles, ...otherRoles]);
         } else {
-          indexEntry(names, team, label, rosterText(staffRoster.teamRoles(team)) || "待公布");
+          indexEntry(names, team, label, staffRoster.teamRoles(team));
         }
       });
       if (guide.managers?.length) {
@@ -214,9 +227,6 @@
           if (leaderId) paragraph(names, name + " " + personName(leaderId));
         });
       }
-      const action = link("guide-" + guide.id, "查看指南", "index-link");
-      action.setAttribute("aria-label", "查看" + guide.title + "指南");
-      names.append(action);
       row.append(title, names);
       rows.push(row);
     });
@@ -241,12 +251,17 @@
     work.dataset.teamId = team.id;
     if (showTitle || editSelection) {
       const title = element("h4", "", showTitle ? team.name : "");
-      editAt(title, team.name, { area: "team", id: team.id, field: "name" });
+      editAt(title, team.name, { area: "team", id: team.id, field: "name" }, "編輯組別");
       work.append(title);
     }
     const distribution = staffRoster.distribution(team, people);
     const roles = staffRoster.teamRoles(team, distribution?.unassigned);
-    paragraph(work, rosterText(roles) || (distribution ? "" : "待公布"), "roster");
+    if (roles.length || !distribution) {
+      const roster = element("p", "roster");
+      appendRoles(roster, roles);
+      editAt(roster, team.name + "人員", { area: "team", id: team.id, field: "memberIds" }, "編輯人員");
+      work.append(roster);
+    }
     paragraph(work, team.deadline, "deadline");
     const periods = team.periods.map(({ label, scheduleId, items }, periodIndex) => {
       const time = eventsById.get(scheduleId)?.time;
@@ -702,7 +717,7 @@
       document.body.classList.toggle("staff-editing", Boolean(select));
       mount(snapshot);
       find("main-content").hidden = false;
-      status.textContent = select ? "選取鉛筆編輯內容" : "草稿預覽";
+      status.textContent = select ? "點選時間或編輯按鈕修改內容" : "草稿預覽";
     }, navigatePreview);
     return;
   }
