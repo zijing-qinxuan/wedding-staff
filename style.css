@@ -167,3 +167,30 @@ footer a { display: inline-flex; align-items: center; min-height: 44px; font-siz
 @media print {
   .site-nav, .skip-link, footer, #refresh-published, .index-link, .back-to-index { display: none; }
 }
+.staff-edit-button {
+  display: inline-grid;
+  place-items: center;
+  vertical-align: middle;
+  min-width: 44px;
+  min-height: 44px;
+  margin-inline-start: .15rem;
+  border: 0;
+  border-radius: .35rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.staff-edit-button:hover,
+.staff-edit-button:focus-visible {
+  background: #efe5d2;
+}
+
+.staff-editing .clock .staff-edit-button {
+  display: grid;
+  margin-inline-start: 0;
+}
+
+:root:has(.staff-editing) { --nav-height: 0rem; }
+.staff-editing > .site-nav { display: none; }

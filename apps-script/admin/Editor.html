@@ -1,111 +1,141 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <base target="_top">
-  <style>
-    :root { color-scheme: light; --paper:#fffdf7; --bg:#f6f2e9; --ink:#342f29; --gold:#725224; --line:#dacfbb; --error:#8c352c; }
-    * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,"PingFang TC",sans-serif; }
-    [hidden] { display:none !important; } main { max-width:1080px; margin:auto; padding:1.2rem; } p { margin:.55rem 0; }
-    h1,h2 { font-family:"Noto Serif TC","Songti TC",serif; } h1 { margin:0; font-size:clamp(1.8rem,5vw,2.8rem); } h2 { margin:.2rem 0 .65rem; }
-    header, section, .toolbar, nav { margin-bottom:1rem; } header p { color:#665d4f; }
-    button, input, textarea, select, .link { font:inherit; color:inherit; min-height:44px; }
-    button, .link { border:1px solid var(--line); padding:.38rem .8rem; border-radius:.55rem; background:var(--paper); cursor:pointer; }
-    button.primary { background:var(--gold); color:#fff; border-color:var(--gold); } button:disabled { opacity:.5; cursor:default; }
-    button[aria-pressed="true"] { border-color:var(--gold); box-shadow:inset 0 -3px var(--gold); }
-    button.danger { color:var(--error); } button:focus-visible, :focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
-    .toolbar, nav, .row-actions { display:flex; gap:.45rem; flex-wrap:wrap; align-items:center; }
-    .status { border-left:3px solid var(--gold); padding:.55rem .8rem; background:var(--paper); white-space:pre-wrap; overflow-wrap:anywhere; }
-    .status.error { color:var(--error); border-color:var(--error); } .muted { color:#665d4f; font-size:.92rem; }
-    .panel, fieldset, .entries > details, .value-row { background:var(--paper); border:1px solid var(--line); border-radius:.7rem; padding:.75rem .9rem; min-width:0; }
-    fieldset, .entries { margin:.75rem 0; } legend { font-weight:700; color:var(--gold); padding:0 .35rem; }
-    label.field { display:block; margin:.55rem 0; } label.field > span { display:block; font-weight:600; }
-    input:not([type=checkbox]), textarea, select { width:100%; border:1px solid var(--line); background:white; padding:.42rem .6rem; border-radius:.4rem; }
-    input[type=checkbox] { min-height:0; width:1.25rem; height:1.25rem; vertical-align:middle; margin-right:.4rem; accent-color:var(--gold); }
-    label.toggle { display:flex; align-items:center; min-height:44px; } textarea { resize:vertical; } code { overflow-wrap:anywhere; }
-    .entries > details, .value-row { margin:.45rem 0; } .entries > details > summary { min-height:44px; cursor:pointer; padding:.35rem 0; font-weight:650; overflow-wrap:anywhere; }
-    .entries { list-style:none; padding:0; } .value-row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
-    .value-row .field { flex:1 1 220px; margin:0; } .row-actions { margin:.35rem 0; }
-    .work-item-fields { flex:1 1 250px; min-width:0; }
-    .section-heading { display:flex; justify-content:space-between; flex-wrap:wrap; gap:.5rem; align-items:center; }
-    .history { padding:0; list-style:none; } .history li { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; border-top:1px solid var(--line); padding:.5rem 0; }
-    iframe { width:100%; height:72vh; border:1px solid var(--line); border-radius:.6rem; background:var(--paper); }
-    dialog { max-width:min(90vw,30rem); padding:1rem; background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:.7rem; }
-    dialog::backdrop { background:#342f2950; }
-    dialog .toolbar { margin:.9rem 0 0; justify-content:flex-end; }
-    input[type=file] { margin:.5rem 0; } small { font-size:.85rem; } .field small { display:block; }
-    @media(max-width:520px) { main { padding:.7rem; } fieldset, .panel, .entries > details, .value-row { padding:.5rem; } }
-  </style>
+<meta charset="utf-8">
+<base target="_top">
+<style>
+  :root { color-scheme:light; --paper:#fffdf7; --bg:#f6f2e9; --ink:#342f29; --gold:#725224; --line:#dacfbb; --error:#8c352c; }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--ink); background:var(--bg); font:16px/1.5 system-ui,"PingFang TC",sans-serif; }
+  [hidden] { display:none!important; }
+  button,input,textarea,select { font:inherit; color:inherit; }
+  button { min-height:44px; padding:.35rem .7rem; border:1px solid var(--line); border-radius:.4rem; background:var(--paper); cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  button.primary { background:var(--gold); color:white; border-color:var(--gold); }
+  button.quiet { border-color:transparent; background:transparent; }
+  button[aria-pressed="true"] { border-color:var(--gold); color:var(--gold); }
+  :focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+  h1,h2,h3,p { margin:.35rem 0; }
+  h1,h2 { font-family:"Noto Serif TC","Songti TC",serif; }
+  h1 { font-size:1.35rem; } h2 { font-size:1.35rem; } h3 { font-size:1rem; }
+  header { background:var(--paper); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:1; }
+  .top { max-width:1360px; margin:auto; padding:.55rem clamp(.6rem,3vw,1.4rem); }
+  .row { display:flex; flex-wrap:wrap; gap:.35rem .5rem; align-items:center; }
+  .spread { justify-content:space-between; }
+  #state,#feedback,#frame-status { font-size:.875rem; }
+  #feedback,#form-error { white-space:pre-line; overflow-wrap:anywhere; }
+  .error,.danger { color:var(--error); }
+  .muted { color:#655a49; }
+  #manager { max-width:1360px; margin:auto; padding:0 clamp(.35rem,3vw,1.4rem); }
+  .nav { padding:.3rem 0; }
+  iframe { display:block; width:100%; height:calc(100dvh - 156px); min-height:380px; border:1px solid var(--line); border-radius:.5rem; background:var(--bg); }
+  body:has(#tools:not([hidden])) { height:100dvh; display:grid; grid-template-rows:auto minmax(0,1fr); overflow:hidden; }
+  body:has(#tools:not([hidden])) #manager { width:100%; margin:0 auto; display:flex; flex-direction:column; }
+  body:has(#tools:not([hidden])) #frame { min-height:0; flex:1; padding-bottom:.45rem; }
+  body:has(#tools:not([hidden])) iframe { height:100%; min-height:0; }
+  dialog { width:min(calc(100% - 1rem),39rem); max-height:calc(100dvh - 1rem); margin:auto; padding:0; border:1px solid var(--line); border-radius:.65rem; color:var(--ink); background:var(--paper); }
+  dialog::backdrop { background:#342f2955; }
+  .dialog-head,.dialog-body,.dialog-foot { padding:.68rem 1rem; }
+  .dialog-head { position:sticky; top:0; z-index:1; background:var(--paper); border-bottom:1px solid var(--line); }
+  .dialog-foot { position:sticky; bottom:0; background:var(--paper); border-top:1px solid var(--line); justify-content:flex-end; }
+  .dialog-body>*+* { margin-top:.65rem; }
+  .field { display:block; min-width:0; }
+  .field>span { display:block; font-weight:650; margin-bottom:.22rem; }
+  input:not([type=checkbox]),textarea,select { width:100%; min-height:44px; padding:.4rem .6rem; border:1px solid var(--line); border-radius:.35rem; background:white; }
+  textarea { resize:vertical; }
+  .toggle { display:flex; align-items:center; gap:.5rem; min-height:44px; }
+  input[type=checkbox] { width:1.2rem; height:1.2rem; accent-color:var(--gold); margin:0; flex-shrink:0; }
+  details > summary { min-height:44px; padding:.55rem 0; cursor:pointer; font-weight:650; overflow-wrap:anywhere; }
+  .fields { display:grid; gap:.6rem; min-width:0; }
+  .entries,.history,.options,.changes { list-style:none; margin:0; padding:0; }
+  .entries>details,.entries>.value-row,.history>li,.changes>li,.options>li { border-top:1px solid var(--line); }
+  .value-row,.changes>li,.history>li { padding:.55rem 0; overflow-wrap:anywhere; }
+  .entries>details>.fields { padding:.15rem 0 .55rem; }
+  .option { width:100%; text-align:left; }
+  .member-options { margin:0; max-height:12rem; overflow:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(7rem,1fr)); padding:0 .2rem; }
+  .entry-tools { margin:.25rem 0 .6rem; }
+  .changes dl { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:.2rem .8rem; margin:.3rem 0; }
+  .changes dt { color:#655a49; } .changes dd { margin:0; white-space:pre-wrap; }
+  #setup, #retry { margin:.7rem auto; max-width:36rem; padding:1rem; }
+  @media(max-width:560px) {
+    .top { padding:.4rem .55rem; }
+    h1 { font-size:1.15rem; }
+    iframe { height:calc(100dvh - 196px); }
+    .nav { gap:.15rem; } .nav button { padding-inline:.3rem; font-size:.8125rem; }
+    .dialog-head,.dialog-body,.dialog-foot { padding:.55rem .7rem; }
+  }
+</style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>婚禮工作指南管理</h1>
-    <p id="versions" aria-live="polite"></p>
-  </header>
-  <p class="status" id="status" role="status">正在讀取婚禮資料…</p>
-  <div class="toolbar" id="reload-controls"><button type="button" id="reload">重新讀取草稿</button></div>
-  <section id="setup" class="panel" hidden>
-    <h2>建立第一份草稿</h2>
-    <p>選擇從目前工作指南匯出的初始化 JSON。</p>
-    <input id="seed" aria-label="婚禮資料 JSON" type="file" accept=".json,application/json">
-    <div class="toolbar"><button type="button" id="review-seed">讀取並檢視</button><button type="button" id="initialize" class="primary" disabled>建立草稿</button></div>
-    <p id="seed-info" class="muted"></p>
-  </section>
-  <div id="manager" hidden>
-    <div class="toolbar">
-      <button type="button" id="save" class="primary">儲存草稿</button>
-      <button type="button" id="preview">預覽</button>
-      <button type="button" id="publish">發布</button>
-      <button type="button" id="export">匯出已儲存草稿</button>
-      <button type="button" id="export-local">匯出目前修改</button>
+<header>
+  <div class="top">
+    <div class="row spread"><h1>婚禮工作指南｜編輯</h1><span id="state" role="status">正在讀取草稿…</span></div>
+    <div class="row" id="tools" hidden>
+      <button id="save" type="button">儲存草稿</button>
+      <button id="preview" type="button" aria-pressed="false">預覽</button>
+      <button id="publish" type="button" class="primary">發布</button>
+      <button id="advanced" type="button" class="quiet">進階設定</button>
     </div>
-    <p class="muted">可見欄位會公開給工作人員。私人資料請填在內部備註，或把該項目設為隱藏。</p>
-    <nav id="tabs" aria-label="編輯區塊"></nav>
-    <section class="panel" id="workspace" aria-labelledby="section-name">
-      <div class="section-heading"><h2 id="section-name"></h2><button type="button" id="edit">✎ 編輯</button></div>
-      <div id="fields" hidden></div>
-    </section>
-    <section class="panel" id="preview-panel" hidden>
-      <div class="section-heading"><h2>草稿預覽</h2><button type="button" id="close-preview">關閉預覽</button></div>
-      <div id="preview-frame"></div>
-    </section>
-    <details class="panel"><summary>發布紀錄與還原</summary><ul class="history" id="history"></ul></details>
+    <p id="feedback" role="status" hidden></p>
   </div>
+</header>
+<button id="retry" type="button" hidden>重新讀取伺服器資料</button>
+<section id="setup" hidden>
+  <h2>建立第一份草稿</h2>
+  <input id="seed" aria-label="婚禮資料 JSON" type="file" accept=".json,application/json">
+  <div class="row"><button id="review-seed" type="button">驗證並預覽</button><button id="initialize" type="button" class="primary" disabled>建立草稿</button></div>
+  <p id="seed-info" class="muted"></p>
+</section>
+<main id="manager" hidden>
+  <nav class="row nav" aria-label="編輯導覽" id="navigation">
+    <button type="button" data-section="schedule" aria-pressed="true" class="quiet">當日總流程</button>
+    <button type="button" data-section="teams" class="quiet">工作分配及各組指南</button>
+    <button type="button" data-section="reception" class="quiet">婚宴安排</button>
+    <button type="button" id="library">新增／隱藏</button>
+  </nav>
+  <p id="frame-status" class="muted" role="status" hidden></p>
+  <div id="frame"></div>
 </main>
+<dialog id="panel" aria-labelledby="panel-title">
+  <div class="dialog-head row spread"><h2 id="panel-title"></h2><button type="button" id="close" class="quiet">關閉</button></div>
+  <div class="dialog-body" id="panel-body"></div>
+  <div class="dialog-foot row" id="panel-actions"></div>
+</dialog>
 <dialog id="confirmation" aria-labelledby="confirm-message">
-  <p id="confirm-message"></p>
-  <form class="toolbar" method="dialog">
-    <button value="cancel" autofocus>取消</button>
-    <button class="primary" id="confirm-yes" value="confirm">確認</button>
-  </form>
+  <div class="dialog-body" id="confirm-message"></div>
+  <form class="dialog-foot row" method="dialog"><button value="cancel" autofocus>取消</button><button value="confirm" class="primary">確認</button></form>
 </dialog>
 <script>
 'use strict';
 const get = (id) => document.getElementById(id);
-const tabs = [
-  ['總流程', ['schedule', 'keyTimes']],
-  ['人員及兼任', ['people', 'management', 'assignments']],
-  ['工作組別', ['teams']],
-  ['節目及影音', ['ceremony', 'cameraPositions', 'avCues', 'avInfo', 'avChecklist', 'equipment']],
-  ['攝影及合照', ['photoGroups', 'photoServices']],
-  ['撤場及婚宴', ['cleanup', 'reception']],
-  ['顯示及其他資訊', ['sections', 'weddingInfo', 'venues', 'seating', 'privateNotes']]
-];
 const states = { confirmed:'已確認', tentative:'暫定', pending:'待公布' };
-let model = null;
-let draft;
-let dirty = false;
-let busy = false;
-let selectedTab = 0;
-let editing = false;
-let seedReview = null;
-let previewSession = null;
+const friendly = {
+  overviewTitle:'總流程顯示名稱（可留空）', overviewHidden:'從當日總流程隱藏',
+  indexHidden:'從工作分配索引隱藏', guideTeamIds:'也顯示於以下工作指南',
+  memberIds:'組員', supportIds:'機動支援', candidateIds:'待核對姓名',
+  scheduleId:'沿用總流程時間', startEventId:'開始時間連結', endEventId:'目標結束時間連結',
+  summary:'工作說明', note:'補充說明', advanceTeam:'先遣人員', status:'安排狀態'
+};
+const areas = {
+  schedule:['當日總流程','schedule'], teams:['工作組別','teams'], reception:['婚宴安排','reception'],
+  management:['現場統籌及各區負責人','management'], assignments:['兼任工作交接','assignments'],
+  ceremony:['婚禮節目及時間','ceremony'], cameraPositions:['直播機位','cameraPositions'],
+  avCues:['影音操作提示','avCues'], avChecklist:['影音測試及設備說明','avChecklist','equipment','avInfo'],
+  photoGroups:['大合照安排','photoGroups'], photoServices:['攝影及背板服務','photoServices'],
+  cleanup:['撤場期限、工作及物資去向','cleanup'], venues:['場地、地址及動線','venues'],
+  seating:['座位及大合照配置說明','seating'], people:['工作人員名單','people'],
+  sections:['網站區塊顯示設定','sections'], weddingInfo:['新人及場地資訊','weddingInfo'],
+  keyTimes:['重要時間','keyTimes'], privateNotes:['內部備註','privateNotes']
+};
+let model, draft, visibleDraft, session, transaction, seedReview;
+let dirty = false, busy = false, checking = false, previewOnly = false, selectedSection = 'schedule';
 
+const copy = (value) => JSON.parse(JSON.stringify(value));
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 function node(tag, text) {
-  const element = document.createElement(tag);
-  if (text !== undefined) element.textContent = text;
-  return element;
+  const item = document.createElement(tag);
+  if (text !== undefined) item.textContent = text;
+  return item;
 }
 function button(text, click, className = '') {
   const item = node('button', text);
@@ -114,11 +144,26 @@ function button(text, click, className = '') {
   item.onclick = click;
   return item;
 }
-function message(text, error = false) {
-  get('status').textContent = text;
-  get('status').classList.toggle('error', error);
+function message(text = '', error = false) {
+  const item = get('feedback');
+  item.textContent = text;
+  item.hidden = !text;
+  item.classList.toggle('error', error);
 }
-function requestConfirmation(text) {
+function formatTime(value) {
+  return new Date(value).toLocaleString('zh-TW', { timeZone:'Asia/Taipei', hour12:false });
+}
+function updateState() {
+  if (!model) return;
+  const published = model.published;
+  get('state').textContent = dirty ? '尚未儲存的修改' : published?.version === model.revision
+    ? '已發布最新版本・' + formatTime(published.updatedAt)
+    : draft ? '草稿已儲存，尚未發布' : '尚未建立草稿';
+  get('save').disabled = busy || checking || !dirty;
+  get('publish').disabled = busy || checking || !dirty && published?.version === model.revision;
+  get('advanced').disabled = busy || checking;
+}
+function confirmAction(text) {
   const dialog = get('confirmation');
   dialog.returnValue = '';
   get('confirm-message').textContent = text;
@@ -132,325 +177,778 @@ function rpc(action, payload = {}) {
     google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).adminRequest(action, payload)
   );
 }
-async function perform(work) {
-  if (busy) return;
+async function perform(work, label) {
+  if (busy || checking) return;
   busy = true;
-  document.querySelectorAll('button, input, textarea, select').forEach((control) => {
-    control.dataset.wasDisabled = String(control.disabled);
-    control.disabled = true;
-  });
+  updateState();
+  message();
   try { await work(); }
-  catch (error) { message(error.message || String(error), true); }
-  finally {
-    busy = false;
-    document.querySelectorAll('[data-was-disabled]').forEach((control) => {
-      control.disabled = control.dataset.wasDisabled === 'true';
-      delete control.dataset.wasDisabled;
-    });
-    get('initialize').disabled = !seedReview;
+  catch (error) {
+    const text = label + '。' + (error.message || String(error));
+    if (get('panel').open) {
+      get('panel-error')?.remove();
+      const item = node('p',text);
+      item.id = 'panel-error';
+      item.className = 'error';
+      item.setAttribute('role','alert');
+      get('panel-body').prepend(item);
+    } else message(text,true);
   }
+  finally { busy = false; updateState(); }
 }
-function formatTime(value) {
-  return value ? new Date(value).toLocaleString('zh-TW', { timeZone:'Asia/Taipei', hour12:false }) : '尚未儲存';
-}
-function updateVersions() {
-  if (!model) return;
-  const published = model.published ? 'v' + model.published.version + '・' + formatTime(model.published.updatedAt) : '尚未發布';
-  get('versions').textContent = (dirty ? '有未儲存的修改' : '草稿 ' + formatTime(model.draftUpdatedAt)) + '｜公開版本 ' + published;
-}
-function changed() { dirty = true; updateVersions(); }
 window.addEventListener('beforeunload', (event) => {
-  if (dirty) { event.preventDefault(); event.returnValue = ''; }
+  if (dirty || transaction?.modified()) { event.preventDefault(); event.returnValue = ''; }
 });
 
-function applyState(result) {
-  closePreview();
+function frameNotice(text = '') {
+  get('frame-status').hidden = !text;
+  get('frame-status').textContent = text;
+}
+function sendPreview(type, more) {
+  if (session?.ready) session.frame.contentWindow.postMessage({ type, nonce:session.nonce, ...more }, session.origin);
+}
+function renderPreview() {
+  if (!visibleDraft) return;
+  if (!session) {
+    const url = new URL(model.siteUrl);
+    url.searchParams.set('staff-editor', '2');
+    const nonce = crypto.randomUUID();
+    url.hash = 'staff-preview=' + nonce;
+    const frame = node('iframe');
+    frame.title = '婚禮工作指南即時預覽';
+    frame.referrerPolicy = 'no-referrer';
+    frame.src = url.href;
+    session = { frame, nonce, origin:url.origin, ready:false, received:false };
+    get('frame').replaceChildren(frame);
+    frameNotice('正在開啟網站預覽…');
+    session.timer = setTimeout(() => {
+      if (!session?.received) frameNotice('預覽尚未回應。可從進階設定重新載入預覽。');
+    }, 12000);
+  }
+  session.received = false;
+  sendPreview('staff-preview-data', { data:visibleDraft, editing:Boolean(draft) && !previewOnly });
+}
+window.addEventListener('message', (event) => {
+  if (!session || event.source !== session.frame.contentWindow || event.origin !== session.origin) return;
+  const message = event.data;
+  if (message?.nonce !== session.nonce) return;
+  if (message.type === 'staff-preview-ready') {
+    session.ready = true;
+    renderPreview();
+  } else if (message.type === 'staff-preview-rendered') {
+    session.received = true;
+    clearTimeout(session.timer);
+    frameNotice();
+  } else if (message.type === 'staff-preview-edit' && session.received && draft && !previewOnly &&
+      !busy && !checking && !get('panel').open) {
+    selectContent(message.target);
+  }
+});
+function setPreviewMode(only) {
+  previewOnly = only;
+  get('preview').setAttribute('aria-pressed', String(only));
+  get('preview').textContent = only ? '返回編輯' : '預覽';
+  get('navigation').hidden = only;
+  renderPreview();
+}
+get('preview').onclick = () => { if (!busy && !checking) setPreviewMode(!previewOnly); };
+
+async function applyState(result) {
   model = { ...model, ...result };
   draft = result.draft;
   dirty = false;
   get('setup').hidden = Boolean(draft);
-  get('manager').hidden = !draft;
-  updateVersions();
-  if (draft) {
-    renderTabs();
-    renderSection();
-    renderHistory();
+  get('tools').hidden = !draft;
+  get('retry').hidden = true;
+  get('navigation').hidden = !draft || previewOnly;
+  updateState();
+  if (!draft) return;
+  get('manager').hidden = false;
+  try {
+    visibleDraft = await rpc('preview', { data:draft });
+    renderPreview();
+  } catch (error) {
+    frameNotice('無法更新預覽。' + (error.message || error));
   }
 }
-function renderTabs() {
-  get('tabs').replaceChildren(...tabs.map(([title], index) => {
-    const item = button(title, () => {
-      if (busy) return;
-      selectedTab = index;
-      editing = false;
-      renderTabs();
-      renderSection();
-    });
-    item.setAttribute('aria-pressed', String(index === selectedTab));
-    return item;
-  }));
+async function reload() {
+  if (dirty && !await confirmAction('重新讀取會捨棄未儲存的修改。確定繼續？')) return;
+  dismissPanel();
+  await perform(async () => applyState(await rpc('load')), '讀取失敗');
+  if (!model) get('retry').hidden = false;
 }
-function renderSection() {
-  const [title, keys] = tabs[selectedTab];
-  get('section-name').textContent = title;
-  get('edit').textContent = editing ? '收合編輯' : '✎ 編輯';
-  get('edit').setAttribute('aria-expanded', String(editing));
-  get('fields').hidden = !editing;
-  get('fields').replaceChildren();
-  if (editing) keys.forEach((key) => renderField(get('fields'), model.schema.fields[key], draft, key));
-}
-get('edit').onclick = () => { editing = !editing; renderSection(); };
+get('retry').onclick = reload;
+get('navigation').addEventListener('click', (event) => {
+  const section = event.target.dataset.section;
+  if (!section) return;
+  selectedSection = section;
+  get('navigation').querySelectorAll('[data-section]').forEach((item) =>
+    item.setAttribute('aria-pressed', String(item.dataset.section === section)));
+  sendPreview('staff-preview-navigate', { section });
+});
+get('library').onclick = showLibrary;
 
-function optionsFor(type) {
-  if (type === 'person') return draft.people.map(({ id, name }) => [id, name + '（' + id + '）']);
-  if (type === 'team') return [...draft.teams, ...(draft.reception.groups || [])].map(({ id, name }) => [id, name]);
-  if (type === 'event') return draft.schedule.flatMap(({ date, events }) => events.map(({ id, time, title }) => [id, date + ' ' + time + ' ' + title]));
+function panel(title) {
+  get('panel-title').textContent = title;
+  get('panel-body').replaceChildren();
+  get('panel-actions').replaceChildren();
+  get('panel-actions').hidden = true;
+  if (!get('panel').open) get('panel').showModal();
+  get('panel').scrollTop = 0;
+  return get('panel-body');
+}
+async function closePanel() {
+  if (checking || transaction?.modified() && !await confirmAction('捨棄這個視窗中尚未套用的修改？')) return;
+  dismissPanel();
+}
+function dismissPanel() {
+  transaction = null;
+  get('panel').close();
+}
+get('close').onclick = closePanel;
+get('panel').addEventListener('cancel', (event) => { event.preventDefault(); closePanel(); });
+
+function namesIn(value, data) {
+  const names = new Map(data.people.map(({ id, name }) => [id, name]));
+  return String(value ?? '').replace(/\{person:([^{}]+)\}/g, (_, id) => names.get(id) || '（人員待確認）');
+}
+function optionsFor(type, data) {
+  if (type === 'person') return data.people.map(({ id, name }) => [id, name]);
+  if (type === 'team') return [...data.teams, ...(data.reception.groups || [])].map(({ id, name }) => [id, namesIn(name, data)]);
+  if (type === 'event') return data.schedule.flatMap(({ events }) => events.map(({ id, time, title }) => [id, time + ' ' + namesIn(title, data)]));
   return Object.entries(states);
 }
 function fresh(spec) {
-  if (spec.type === 'workItem') return { text: '' };
-  if (spec.type === 'object') {
-    return Object.fromEntries(Object.entries(spec.fields).filter(([, field]) => !field.optional).map(([key, field]) => [key, fresh(field)]));
-  }
+  if (spec.type === 'workItem') return { text:'' };
+  if (spec.type === 'object') return Object.fromEntries(Object.entries(spec.fields)
+    .filter(([, field]) => !field.optional).map(([key, field]) => [key, fresh(field)]));
   if (spec.type === 'list') return [];
   if (spec.type === 'bool') return false;
   if (spec.type === 'status') return 'confirmed';
   if (spec.type === 'id') return 'item-' + crypto.randomUUID();
   return '';
 }
-function titleFor(item, spec, index) {
-  const name = item.name || item.title || item.label || item.date || item.role || item.moment ||
-    (item.personId && draft.people.find(({ id }) => id === item.personId)?.name) || item.id || (spec.label + ' ' + (index + 1));
-  return (item.hidden ? '（已隱藏）' : '') + name.replace(/\{person:([^{}]+)\}/g, (_, id) => draft.people.find((person) => person.id === id)?.name || id);
+function titleFor(item, spec, index, data) {
+  if (typeof item === 'string') return namesIn(item, data);
+  const person = optionsFor('person', data).find(([id]) => id === item.personId)?.[1];
+  return namesIn(item.name || item.title || item.label || item.date || item.role || item.moment ||
+    item.text || person || spec.label + ' ' + (index + 1), data);
 }
-function renderField(parent, spec, owner, key) {
-  if (spec.type === 'object' || spec.type === 'list') {
-    const box = node('fieldset');
-    box.append(node('legend', spec.label));
+function appendFields(parent, specs, owner, path, data, preferred) {
+  Object.entries(specs).forEach(([key, spec]) => renderField(parent, spec, owner, key, [...path,key], data, preferred));
+}
+function fieldLabel(spec, key) {
+  return key === 'hidden' ? '顯示於網站' : friendly[key] || spec.label;
+}
+function renderField(parent, spec, owner, key, path, data, preferred) {
+  if (spec.type === 'id' || spec.private && !transaction.private) return;
+  if (spec.type === 'list' && spec.item.type === 'person') {
+    renderMembers(parent, spec, owner, key, path, data, preferred);
+    return;
+  }
+  if (spec.type === 'list' || spec.type === 'object') {
+    const group = node('div');
+    group.className = 'fields';
+    const nested = spec.type === 'list' && (path.length > 1 || key === 'periods');
+    const box = nested ? node('details') : group;
+    if (nested) {
+      box.append(node('summary', fieldLabel(spec, key)), group);
+      box.open = preferred && path.every((part, index) => part === preferred[index]);
+    } else group.append(node('h3', fieldLabel(spec, key)));
     parent.append(box);
-    if (spec.type === 'list') {
-      renderList(box, spec, owner, key);
-    } else {
+    if (spec.type === 'list') renderList(group, spec, owner, key, path, data, preferred);
+    else {
       const value = owner[key] || {};
-      Object.entries(spec.fields).forEach(([childKey, field]) => {
-        if (!owner[key]) {
-          const wrapper = node('div');
-          wrapper.addEventListener('input', () => { owner[key] = value; });
-          box.append(wrapper);
-          renderField(wrapper, field, value, childKey);
-        } else renderField(box, field, value, childKey);
-      });
+      group.addEventListener('input', () => { owner[key] = value; });
+      group.addEventListener('change', () => { owner[key] = value; });
+      appendFields(group, spec.fields, value, path, data, preferred);
     }
     return;
   }
   const label = node('label');
-  label.className = spec.type === 'bool' ? 'toggle' : 'field';
+  const caption = node('span', fieldLabel(spec, key));
   let control;
   if (spec.type === 'bool') {
+    label.className = 'toggle';
     control = node('input');
     control.type = 'checkbox';
-    control.checked = owner[key] === true;
-    label.append(control, node('span', spec.label));
+    control.checked = key === 'hidden' ? !owner[key] : Boolean(owner[key]);
+    label.append(control, caption);
   } else {
-    label.append(node('span', spec.label));
-    if (['person', 'team', 'event', 'status'].includes(spec.type)) {
+    label.className = 'field';
+    label.append(caption);
+    if (['person','team','event','status'].includes(spec.type)) {
       control = node('select');
-      control.append(new Option('請選擇', ''));
-      optionsFor(spec.type).forEach(([value, title]) => control.append(new Option(title, value)));
-      if (owner[key] && ![...control.options].some((option) => option.value === owner[key])) {
-        control.append(new Option('找不到 ' + owner[key], owner[key]));
-      }
+      if (spec.optional || !owner[key]) control.append(new Option(spec.optional ? '未指定' : '請選擇', ''));
+      optionsFor(spec.type, data).forEach(([value, text]) => control.append(new Option(text, value)));
+      control.value = owner[key] || '';
     } else {
-      control = node(spec.type === 'id' ? 'input' : 'textarea');
-      if (spec.type === 'id') control.readOnly = true;
-      else {
-        control.rows = String(owner[key] || '').length > 55 || spec.private ? 3 : 1;
-        control.maxLength = spec.maxLength || (spec.private ? 12000 : 2500);
-      }
+      const original = spec.private ? String(owner[key] || '') : namesIn(owner[key], data);
+      const multiline = spec.private || original.length > 42 || ['text','summary','detail','work','note'].includes(key);
+      control = node(multiline ? 'textarea' : 'input');
+      control.maxLength = spec.maxLength || (spec.private ? 12000 : 2500);
+      control.value = original;
+      if (multiline) control.rows = original.length > 110 ? 4 : 2;
     }
-    control.value = owner[key] || '';
     label.append(control);
   }
   control.addEventListener('input', () => {
-    owner[key] = spec.type === 'bool' ? control.checked : control.value;
-    changed();
+    if (spec.type === 'bool') owner[key] = key === 'hidden' ? !control.checked : control.checked;
+    else if (!control.value && spec.optional && ['person','team','event','status'].includes(spec.type)) delete owner[key];
+    else owner[key] = control.value;
   });
   parent.append(label);
-  if (spec.type === 'text' && !spec.private && /\{person:/.test(control.value)) {
-    label.append(node('small', '人員代碼會在公開頁顯示對應姓名，修改姓名時會同步更新。'));
-  }
+  if (same(path, preferred)) transaction.focus = control;
 }
 
-function renderList(box, spec, owner, key) {
-  const entries = node('div');
-  entries.className = 'entries';
-  const array = () => owner[key] || [];
-  function draw(openIndex) {
-    entries.replaceChildren();
-    array().forEach((value, index) => {
-      const isWork = spec.item.type === 'workItem';
-      const isObject = spec.item.type === 'object';
-      const row = node(isObject ? 'details' : 'div');
-      if (isObject) {
-        row.open = index === openIndex;
-        row.append(node('summary', titleFor(value, spec.item, index)));
-      } else row.className = 'value-row';
-      const actions = node('div');
-      actions.className = 'row-actions';
-      function move(offset) {
-        const target = index + offset;
-        [array()[index], array()[target]] = [array()[target], array()[index]];
-        changed();
-        draw(target);
-      }
-      const up = button('上移', () => move(-1));
-      const down = button('下移', () => move(1));
-      up.disabled = index === 0;
-      down.disabled = index === array().length - 1;
-      actions.append(up, down, button('刪除', async () => {
-        if (!await requestConfirmation('確定從草稿刪除這一項？')) return;
-        if (!await requestConfirmation('請再次確認刪除。修改會在儲存草稿後同步。')) return;
-        array().splice(index, 1);
-        changed();
-        draw();
-      }, 'danger'));
-      if (isObject) {
-        row.append(actions);
-        Object.entries(spec.item.fields).forEach(([fieldKey, field]) => renderField(row, field, value, fieldKey));
-        row.addEventListener('input', () => { row.querySelector('summary').textContent = titleFor(value, spec.item, index); });
-      } else if (isWork) {
-        const item = typeof value === 'string' ? { text: value } : value;
-        const fields = node('div');
-        fields.className = 'work-item-fields';
-        Object.entries(spec.item.fields).forEach(([fieldKey, field]) => renderField(fields, field, item, fieldKey));
-        fields.addEventListener('input', () => { array()[index] = item; });
-        row.append(fields, actions);
-      } else {
-        renderField(row, spec.item, array(), index);
-        row.append(actions);
-      }
-      entries.append(row);
-    });
+function renderMembers(parent, spec, owner, key, path, data, preferred) {
+  const box = node('details');
+  const summary = node('summary');
+  const items = node('div');
+  items.className = 'member-options';
+  box.open = same(path, preferred);
+  box.append(summary, items);
+  const name = node('input');
+  name.placeholder = '輸入姓名';
+  name.setAttribute('aria-label', '新工作人員姓名');
+  const add = async () => {
+    const value = name.value.trim();
+    if (!value) { name.focus(); return; }
+    if (data.people.some((person) => person.name.trim() === value) &&
+        !await confirmAction('已有同名人員「' + value + '」。確認是不同的人，再新增一筆？')) return;
+    const person = { ...fresh(model.schema.fields.people.item), name:value };
+    data.people.push(person);
+    owner[key] = [...(owner[key] || []), person.id];
+    name.value = '';
+    draw();
+  };
+  function draw() {
+    const selected = owner[key] || [];
+    summary.textContent = fieldLabel(spec, key) + (selected.length ? '｜' + selected.map((id) =>
+      data.people.find((person) => person.id === id)?.name).filter(Boolean).join('、') : '');
+    items.replaceChildren(...data.people.map(({ id, name }) => {
+      const label = node('label');
+      label.className = 'toggle';
+      const check = node('input');
+      check.type = 'checkbox';
+      check.checked = selected.includes(id);
+      check.addEventListener('change', () => {
+        const current = owner[key] || [];
+        owner[key] = check.checked ? [...current, id] : current.filter((value) => value !== id);
+        summary.textContent = fieldLabel(spec, key) + '｜' + data.people.filter((person) => owner[key].includes(person.id)).map((person) => person.name).join('、');
+      });
+      label.append(check, node('span', name));
+      return label;
+    }));
   }
-  box.append(entries, button('新增' + (spec.item.type === 'object' ? spec.item.label : spec.item.label === '人員' ? '人員' : '一項'), () => {
-    if (!owner[key]) owner[key] = [];
-    array().push(fresh(spec.item));
-    changed();
-    draw(array().length - 1);
-    entries.lastElementChild?.querySelector('input:not([readonly]),textarea,select')?.focus();
-  }));
+  if (key === 'memberIds') {
+    const tools = node('div');
+    tools.className = 'row';
+    tools.append(name, button('新增這位人員並加入', add));
+    box.append(tools);
+  }
+  parent.append(box);
   draw();
 }
 
-function renderHistory() {
-  const list = get('history');
-  list.replaceChildren();
-  if (!model.history.length) list.append(node('li', '尚無發布紀錄'));
-  model.history.forEach((entry) => {
-    const row = node('li');
-    row.append(node('span', 'v' + entry.version + '・' + formatTime(entry.updatedAt) + (entry.summary ? '・' + entry.summary : '')));
-    const actions = node('div');
-    actions.className = 'row-actions';
-    actions.append(button('匯出', () => perform(async () => download(await rpc('export', { version:entry.version })))), button('還原至草稿', async () => {
-      if (!await requestConfirmation('將 v' + entry.version + ' 還原到草稿？目前草稿與未儲存修改會被取代，公開版本仍會保留。')) return;
-      perform(async () => {
-        applyState(await rpc('restore', { revision:model.revision, version:entry.version }));
-        message('已還原至草稿。預覽確認後可發布。');
-      });
+async function confirmDelete(title) {
+  return await confirmAction('要刪除「' + title + '」嗎？') &&
+    await confirmAction('請再次確認刪除「' + title + '」。');
+}
+function entryTools(container, array, index, title, redraw) {
+  const controls = node('div');
+  controls.className = 'row entry-tools';
+  for (const [offset, label] of [[-1,'上移'],[1,'下移']]) {
+    const move = button(label, () => {
+      const destination = index + offset;
+      [array[index], array[destination]] = [array[destination], array[index]];
+      redraw(destination);
+    });
+    move.disabled = index + offset < 0 || index + offset >= array.length;
+    controls.append(move);
+  }
+  controls.append(button('刪除', async () => {
+    if (!await confirmDelete(title)) return;
+    array.splice(index,1);
+    redraw();
+  }, 'danger quiet'));
+  container.append(controls);
+}
+
+function renderList(parent, spec, owner, key, path, data, preferred) {
+  const entries = node('div');
+  entries.className = 'entries';
+  const array = () => owner[key] || [];
+  function draw(openIndex, focusPath) {
+    entries.replaceChildren(...array().map((value, index) => {
+      const itemPath = [...path,index];
+      const row = node('details');
+      row.open = index === openIndex;
+      const heading = node('summary');
+      const updateHeading = () => {
+        const item = array()[index];
+        heading.textContent = (item?.hidden ? '已隱藏｜' : '') + (titleFor(item, spec.item, index, data) || '新增項目');
+      };
+      updateHeading();
+      row.append(heading);
+      const fields = node('div');
+      fields.className = 'fields';
+      row.append(fields);
+      row.addEventListener('input', updateHeading);
+      if (spec.item.type === 'object' || spec.item.type === 'workItem') {
+        const item = typeof value === 'string' ? { text:value } : value;
+        if (item !== value) fields.addEventListener('input', () => { array()[index] = item; }, true);
+        appendFields(fields, spec.item.fields, item, itemPath, data, focusPath);
+      } else renderField(fields, spec.item, array(), index, itemPath, data, focusPath);
+      entryTools(fields, array(), index, titleFor(value, spec.item, index, data) || '新增項目', (next) => draw(next));
+      return row;
     }));
-    row.append(actions);
+  }
+  parent.append(entries, button('新增' + (spec.item.label === '說明' ? '一項說明' : spec.item.label), () => {
+    if (!owner[key]) owner[key] = [];
+    array().push(fresh(spec.item));
+    draw(array().length - 1);
+    entries.lastElementChild?.querySelector('input,textarea,select')?.focus();
+  }));
+  const next = preferred && path.every((part, index) => part === preferred[index]) ? preferred[path.length] : undefined;
+  draw(next, preferred);
+}
+
+function edit(title, draw, preferred, privateFields = false) {
+  const data = copy(draft);
+  const body = panel(title);
+  transaction = { data, private:privateFields, modified:() => !same(data,draft) };
+  const fields = node('div');
+  fields.className = 'fields';
+  draw(fields, data, preferred);
+  body.append(fields);
+  const errorText = node('p');
+  errorText.id = 'form-error';
+  errorText.className = 'error';
+  errorText.setAttribute('role', 'alert');
+  body.append(errorText);
+  const apply = button('套用修改', async () => {
+    if (checking) return;
+    if (!transaction.modified()) { dismissPanel(); return; }
+    checking = true;
+    get('panel').inert = true;
+    updateState();
+    errorText.textContent = '';
+    try {
+      const projected = await rpc('preview', { data });
+      draft = data;
+      visibleDraft = projected;
+      dirty = true;
+      dismissPanel();
+      renderPreview();
+      message();
+    } catch (error) {
+      errorText.textContent = '無法套用。' + (error.message || String(error));
+    } finally {
+      checking = false;
+      get('panel').inert = false;
+      updateState();
+    }
+  }, 'primary');
+  get('panel-actions').replaceChildren(button('取消', closePanel), apply);
+  get('panel-actions').hidden = false;
+  transaction.focus?.focus();
+}
+const teamCollections = (data) => [data.teams, data.reception.groups || []];
+function editRecord(area, id, field, target = {}, create = false) {
+  const weddingDay = draft.schedule.find((day) => day.id === target.dayId) || draft.schedule.find((day) => day.id === 'wedding-day') || draft.schedule[0];
+  const collection = (data) => {
+    if (area === 'event') return data.schedule.find((day) => day.id === weddingDay?.id)?.events;
+    if (area === 'team') return target.reception || teamCollections(data)[1].some((item) => item.id === id)
+      ? (data.reception.groups ||= []) : data.teams;
+    return data[area === 'person' ? 'people' : 'cameraPositions'];
+  };
+  const specs = model.schema.fields;
+  const spec = area === 'event' ? specs.schedule.item.fields.events.item
+    : area === 'team' ? specs.teams.item : specs[area === 'person' ? 'people' : 'cameraPositions'].item;
+  const original = area === 'event' ? draft.schedule.flatMap(({events}) => events).find((item) => item.id === id)
+    : collection(copy(draft))?.find((item) => item.id === id);
+  if (!original && !create) return;
+  const title = (create ? '新增' : '編輯') + ' ' + (original ? titleFor(original,spec,0,draft) : spec.label);
+  const eventDay = original && area === 'event' ? draft.schedule.find((day) => day.events.includes(original)) : weddingDay;
+  let preferred = field ? [field] : undefined;
+  if (area === 'event' && field === 'details' && Number.isInteger(target.index)) preferred = [field,target.index];
+  if (area === 'team' && Number.isInteger(target.periodIndex)) {
+    const period = original.periods.filter((item) => !item.hidden)[target.periodIndex];
+    if (period) {
+      const sourceIndex = period.items.flatMap((item,index) => item?.hidden ? [] : [index])[target.itemIndex] ?? -1;
+      preferred = sourceIndex >= 0 ? ['periods',original.periods.indexOf(period),'items',sourceIndex,'text']
+        : ['periods',original.periods.indexOf(period),'label'];
+    }
+  }
+  edit(title, (parent, data) => {
+    const list = area === 'event' ? data.schedule.find((day) => day.id === eventDay?.id)?.events : collection(data);
+    if (!list) { parent.append(node('p','請先在進階設定新增婚禮日期。')); return; }
+    const index = create ? list.push(fresh(spec)) - 1 : list.findIndex((item) => item.id === id);
+    const record = list[index];
+    const extras = { event:['overviewHidden','guideTeamIds','featured','details','note'], team:['supportIds','candidateIds','notes','indexHidden'] }[area] || [];
+    Object.entries(spec.fields).filter(([key]) => !extras.includes(key))
+      .forEach(([key, definition]) => renderField(parent, definition, record, key, [key], data, preferred));
+    if (extras.length) {
+      const options = node('details');
+      options.append(node('summary','補充說明及顯示設定'));
+      options.open = extras.includes(preferred?.[0]);
+      extras.forEach((key) => renderField(options, spec.fields[key], record, key, [key], data, preferred));
+      parent.append(options);
+    }
+    if (field === 'overviewTitle' && typeof target.overviewLabel === 'string' && transaction.focus) {
+      transaction.focus.placeholder = target.overviewLabel;
+    }
+    const refreshTools = (next) => {
+      const tools = parent.querySelector(':scope > .entry-tools');
+      tools?.remove();
+      if (next === undefined) {
+        parent.replaceChildren(node('p','此項目將從草稿刪除。請套用修改。'));
+      } else entryTools(parent, list, next, titleFor(record,spec,next,data), refreshTools);
+    };
+    if (!create) refreshTools(index);
+    if (area === 'person') {
+      const input = parent.querySelector('input');
+      const warning = node('p');
+      warning.className = 'muted';
+      input?.addEventListener('input', () => {
+        const value = input.value.trim();
+        warning.textContent = data.people.some((item) => item.id !== record.id && item.name.trim() === value)
+          ? '已有同名人員。請確認是否是另一個人。' : '';
+      });
+      parent.append(warning);
+    }
+  }, preferred, area === 'person' && target.advanced === true);
+}
+function editArea(area, field, target) {
+  const [title, ...keys] = areas[area];
+  let preferred = field && [field];
+  if (Number.isInteger(target?.index) && ['cleanup','reception'].includes(area)) {
+    const listKey = area === 'cleanup' ? 'keyTimes' : 'times';
+    const index = draft[area][listKey].flatMap((item,index) => item.hidden ? [] : [index])[target.index];
+    if (index !== undefined) preferred = [listKey,index,field];
+  }
+  edit(title, (parent, data) => {
+    const schema = model.schema.fields;
+    keys.forEach((key) => {
+      if (keys.length === 1 && schema[key].type === 'object') {
+        if (data[key]) appendFields(parent, schema[key].fields, data[key], [], data, preferred);
+        else renderField(parent, schema[key], data, key, [key], data);
+      } else renderField(parent, schema[key], data, key, [key], data);
+    });
+  }, preferred);
+}
+function selectContent(target) {
+  if (!target || typeof target.area !== 'string') return;
+  if (['team','event','camera'].includes(target.area)) {
+    if (typeof target.id === 'string') editRecord(target.area, target.id, target.field, target);
+  } else if (target.area === 'ushers') {
+    showRecords('team', draft.teams.filter(({ id }) => ['hall-a-ushers','hall-b-ushers','downstairs-ushers'].includes(id)), '各區招待');
+  } else if (Object.hasOwn(areas,target.area) && target.area !== 'privateNotes') editArea(target.area, target.field, target);
+}
+function optionsList(parent, records, choose, titles) {
+  const list = node('ul');
+  list.className = 'options';
+  records.forEach((item) => {
+    const row = node('li');
+    row.append(button(titles(item), () => choose(item), 'quiet option'));
     list.append(row);
   });
+  parent.append(list);
+}
+function showRecords(kind, records, title, options = {}) {
+  const body = panel(title);
+  const label = { event:'流程項目', team:'工作組別', camera:'直播機位', person:'工作人員' }[kind];
+  body.append(button('新增' + label, () => editRecord(kind, null, kind === 'event' ? 'time' : 'name', options, true)));
+  optionsList(body, records, ({ id }) => editRecord(kind, id, kind === 'person' ? 'name' : undefined, options),
+    (item) => (item.hidden || kind === 'event' && item.overviewHidden ? '已隱藏｜' : '') +
+      (kind === 'event' ? item.time + '　' : kind === 'camera' ? '機位 ' : '') +
+      namesIn(item.name || item.title || item.label || item.operator || draft.people.find(({ id }) => id === item.operatorId)?.name || '固定機位', draft));
+}
+function showScheduleList() {
+  const body = panel('總流程項目');
+  if (!draft.schedule.length) body.append(button('新增婚禮日期', () => editArea('schedule')));
+  draft.schedule.forEach((day) => {
+    const group = node('details');
+    group.append(node('summary', day.date + '｜' + day.title), button('新增流程項目', () =>
+      editRecord('event', null, 'time', { dayId:day.id }, true)));
+    optionsList(group, day.events, ({ id }) => editRecord('event', id, 'time', { dayId:day.id }),
+      (event) => (event.hidden || event.overviewHidden ? '已隱藏｜' : '') + event.time + '　' + namesIn(event.title,draft));
+    group.open = !day.hidden;
+    body.append(group);
+  });
+}
+function showLibrary() {
+  if (busy || checking) return;
+  if (selectedSection === 'schedule') { showScheduleList(); return; }
+  const body = panel(selectedSection === 'reception' ? '婚宴內容' : '工作分配及各組指南');
+  const actions = selectedSection === 'reception' ? [
+    ['婚宴時間、場地及先遣', () => editArea('reception','times')],
+    ['婚宴工作組別', () => showRecords('team',draft.reception.groups || [],'婚宴工作組別',{ reception:true })]
+  ] : [
+    ['工作組別及未顯示的組別', () => showRecords('team',draft.teams,'工作組別')],
+    ['工作人員名單', () => showRecords('person',draft.people,'工作人員名單')],
+    ['直播機位', () => showRecords('camera',draft.cameraPositions,'直播機位')],
+    ...['management','assignments','ceremony','avCues','avChecklist','photoGroups','photoServices','cleanup','venues','seating']
+      .map((area) => [areas[area][0], () => editArea(area)])
+  ];
+  optionsList(body, actions, ([, select]) => select(), ([title]) => title);
 }
 function download(value) {
-  const blob = new Blob([JSON.stringify(value, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(new Blob([JSON.stringify(value,null,2)], { type:'application/json' }));
   const link = node('a');
-  const url = URL.createObjectURL(blob);
   link.href = url;
   link.download = '婚禮工作資料-' + (value.version || '未儲存') + '.json';
   link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url),1000);
 }
-async function reload() {
-  if (dirty && !await requestConfirmation('重新讀取會捨棄未儲存的修改。確定繼續？')) return;
-  perform(async () => {
-    applyState(await rpc('load'));
-    message(draft ? '已讀取伺服器草稿。' : '請先建立第一份草稿。');
+function showHistory() {
+  const body = panel('發布紀錄與還原');
+  const list = node('ul');
+  list.className = 'history';
+  if (!model.history.length) list.append(node('li','尚無發布紀錄'));
+  model.history.forEach((entry) => {
+    const item = node('li');
+    item.append(node('p',formatTime(entry.updatedAt) + '｜版本 ' + entry.version));
+    if (entry.summary) item.append(node('p',entry.summary));
+    const controls = node('div');
+    controls.className = 'row';
+    controls.append(button('匯出此版本', () => perform(async () => download(await rpc('export', { version:entry.version })), '匯出失敗')),
+      button('還原為草稿', async () => {
+        if (!await confirmAction('將目前草稿替換為這個歷史版本？公開網站會繼續顯示目前發布的版本。')) return;
+        dismissPanel();
+        await perform(async () => {
+          await applyState(await rpc('restore', { revision:model.revision, version:entry.version }));
+          message('已還原至草稿，可以先預覽再發布。');
+        },'還原失敗');
+      }));
+    item.append(controls);
+    list.append(item);
   });
+  body.append(list);
 }
-get('reload').onclick = reload;
-get('seed').onchange = () => {
-  seedReview = null;
-  get('seed-info').textContent = '';
-  get('initialize').disabled = true;
+async function backupFile(input) {
+  const file = input.files[0];
+  if (!file || file.size > 1100000) throw new Error('請選擇可用的婚禮資料 JSON 檔案。');
+  let backup;
+  try { backup = JSON.parse(await file.text()); }
+  catch { throw new Error('這份檔案的 JSON 格式有誤。'); }
+  return backup?.data || backup;
+}
+function showImport() {
+  const body = panel('匯入備份至目前編輯');
+  const input = node('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.setAttribute('aria-label','婚禮資料備份');
+  const inspect = button('驗證並預覽備份', async () => {
+    await perform(async () => {
+      const data = await backupFile(input);
+      const projection = await rpc('preview', { data });
+      if (!await confirmAction('備份含 ' + data.people.length + ' 位人員、' + data.teams.length +
+          ' 個組別。要將它放入目前編輯畫面預覽嗎？已儲存草稿及正式網站不會變更。')) return;
+      draft = data;
+      visibleDraft = projection;
+      dirty = true;
+      dismissPanel();
+      setPreviewMode(true);
+      message('正在預覽備份內容。按儲存草稿才會更新伺服器草稿。');
+    },'匯入失敗');
+  });
+  body.append(node('p','驗證後可在正式網站的版面預覽備份。'),input,inspect);
+}
+get('advanced').onclick = () => {
+  const body = panel('進階設定');
+  const options = [
+    ['發布紀錄與還原',showHistory], ['匯出目前修改',() => download({ data:draft })],
+    ['匯出已儲存草稿',() => perform(async () => download(await rpc('export')),'匯出失敗')],
+    ['匯入備份',showImport], ['重新讀取伺服器資料',reload],
+    ['重新載入預覽',() => {
+      dismissPanel();
+      clearTimeout(session?.timer);
+      session = null;
+      renderPreview();
+    }],
+    ['內部備註',() => edit('內部備註',(parent,data) => {
+      renderField(parent,model.schema.fields.privateNotes,data,'privateNotes',['privateNotes'],data);
+      const sections = [
+        ['人員', model.schema.fields.people.item, data.people],
+        ['工作組別', model.schema.fields.teams.item, teamCollections(data).flat()],
+        ['流程項目', model.schema.fields.schedule.item.fields.events.item, data.schedule.flatMap(({events}) => events)]
+      ];
+      for (const [title,spec,records] of sections) {
+        const group = node('details');
+        group.append(node('summary',title));
+        records.forEach((item,index) => {
+          const row = node('details');
+          row.append(node('summary',titleFor(item,spec,index,data)));
+          renderField(row,spec.fields.internalNote,item,'internalNote',['internalNote'],data);
+          group.append(row);
+        });
+        parent.append(group);
+      }
+    },['privateNotes'],true)],
+    ...['sections','weddingInfo','schedule','keyTimes'].map((area) => [areas[area][0],() => editArea(area)])
+  ];
+  optionsList(body,options,([,select]) => select(),([title]) => title);
 };
+get('seed').onchange = () => { seedReview = null; get('initialize').disabled = true; };
 get('review-seed').onclick = () => perform(async () => {
-  const file = get('seed').files[0];
-  if (!file || file.size > 800000) throw new Error('請選擇有效的初始化 JSON 檔案。');
-  const parsed = JSON.parse(await file.text());
-  const candidate = parsed.data || parsed;
-  const sanitized = await rpc('preview', { data:candidate });
-  seedReview = candidate;
-  get('seed-info').textContent = '已驗證。含 ' + candidate.people.length + ' 位人員、' + candidate.teams.length + ' 個工作組別。';
-  showPreview(sanitized);
-});
+  const data = await backupFile(get('seed'));
+  visibleDraft = await rpc('preview', { data });
+  seedReview = data;
+  get('initialize').disabled = false;
+  get('seed-info').textContent = '資料已驗證，可以查看下方預覽。';
+  get('manager').hidden = false;
+  renderPreview();
+},'讀取失敗');
 get('initialize').onclick = () => perform(async () => {
   if (!seedReview) return;
-  applyState(await rpc('initialize', { revision:model.revision, data:seedReview }));
+  await applyState(await rpc('initialize',{ revision:model.revision, data:seedReview }));
   seedReview = null;
-  message('已建立草稿，確認預覽後可發布。');
-});
+},'建立草稿失敗');
 get('save').onclick = () => perform(async () => {
-  if (!dirty) { message('草稿已是最新儲存版本。'); return; }
-  applyState(await rpc('save', { revision:model.revision, data:draft }));
+  if (!dirty) return;
+  await applyState(await rpc('save',{ revision:model.revision, data:draft }));
   message('草稿已儲存。');
-});
-get('publish').onclick = async () => {
-  if (dirty) { message('請先儲存修改，再發布草稿。', true); return; }
-  if (!await requestConfirmation('確定發布此草稿？所有工作人員將看到此版本。')) return;
-  perform(async () => {
-    applyState(await rpc('publish', { revision:model.revision }));
-    message('已發布 v' + model.published.version + '・' + formatTime(model.published.updatedAt));
-  });
-};
-get('export').onclick = () => perform(async () => download(await rpc('export')));
-get('export-local').onclick = () => download({ data:draft });
-get('preview').onclick = () => perform(async () => showPreview(await rpc('preview', { data:draft })));
-get('close-preview').onclick = closePreview;
+},'儲存失敗，修改仍保留在畫面上');
+function describeChange(value, spec, data) {
+  if (value === undefined || value === null || value === '') return '—';
+  if (spec.type === 'bool') return value ? '是' : '否';
+  if (['person','team','event','status'].includes(spec.type)) {
+    return optionsFor(spec.type,data).find(([id]) => id === value)?.[1] || '未指定';
+  }
+  if (spec.type === 'workItem') return namesIn(typeof value === 'string' ? value : value.text,data);
+  if (spec.type === 'list') {
+    return value.map((item) => describeChange(item,spec.item,data)).join('、') || '—';
+  }
+  if (spec.type === 'object') {
+    return Object.entries(spec.fields).filter(([key,child]) =>
+      child.type !== 'id' && child.type !== 'bool' && !child.private && value[key] !== undefined
+    ).map(([key,child]) => fieldLabel(child,key) + '　' + describeChange(value[key],child,data)).join('\n') || '—';
+  }
+  return namesIn(value,data);
+}
 
-function closePreview() {
-  clearTimeout(previewSession?.timer);
-  previewSession = null;
-  get('preview-frame').replaceChildren();
-  get('preview-panel').hidden = true;
+function pairRecords(before, after) {
+  const used = new Set();
+  const pairs = after.map((item,newIndex) => ({ item,newIndex,oldIndex:-1 }));
+  const identity = (item) => item && typeof item === 'object' &&
+    (item.id || item.title || item.name || item.label || item.role || item.moment || item.personId);
+  for (const matches of [
+    (a,b) => Boolean(a?.id) && a.id === b?.id,
+    (a,b) => same(a,b),
+    (a,b) => Boolean(identity(a)) && identity(a) === identity(b),
+    (a,b) => !a?.id && !b?.id
+  ]) {
+    for (const pair of pairs) {
+      if (pair.oldIndex !== -1) continue;
+      const index = before.findIndex((item,i) => !used.has(i) && matches(item,pair.item));
+      if (index !== -1) { pair.oldIndex = index; used.add(index); }
+    }
+  }
+  return { pairs, removed:before.map((item,index) => ({ item,index })).filter(({ index }) => !used.has(index)) };
 }
-function showPreview(data) {
-  closePreview();
-  const panel = get('preview-panel');
-  const parent = draft ? get('manager') : get('setup');
-  parent.append(panel);
-  const url = new URL(model.siteUrl);
-  const nonce = crypto.randomUUID();
-  url.hash = 'staff-preview=' + nonce;
-  const frame = node('iframe');
-  frame.title = '婚禮工作指南草稿預覽';
-  frame.referrerPolicy = 'no-referrer';
-  frame.src = url.href;
-  previewSession = { frame, nonce, origin:url.origin, data, timer:setTimeout(() => {
-    message('預覽頁未回應，請確認工作人員網站已安裝預覽功能且網址正確。', true);
-  }, 12000) };
-  get('preview-frame').append(frame);
-  panel.hidden = false;
-  panel.scrollIntoView({ block:'start' });
+
+function reviewChanges(before, after, schema) {
+  if (!before) return [{ title:'首次發布', before:'尚未有公開版本',
+    after:after.people.length + ' 位人員、' + after.teams.length + ' 個組別及目前的婚禮工作指南' }];
+  const entries = [];
+  let privateChanged = false;
+  const add = (title, before, after) => entries.push({ title, before, after });
+  function walk(a,b,spec,path,key) {
+    if (spec.private) { privateChanged ||= !same(a,b); return; }
+    if (spec.type === 'id') return;
+    const label = fieldLabel(spec,key);
+    const title = [...path,label].join('／');
+    if (spec.type === 'bool') {
+      if (Boolean(a) !== Boolean(b)) {
+        const visibility = key === 'hidden' || key === 'overviewHidden' || key === 'indexHidden' || path[0] === '網站區塊顯示設定';
+        add(title,visibility ? (a ? '隱藏' : '顯示') : describeChange(!!a,spec,before),
+          visibility ? (b ? '隱藏' : '顯示') : describeChange(!!b,spec,after));
+      }
+      return;
+    }
+    if (spec.type === 'workItem') {
+      walk(typeof a === 'string' ? { text:a } : a,typeof b === 'string' ? { text:b } : b,
+        { ...spec,type:'object' },path,key);
+      return;
+    }
+    if (spec.type === 'object') {
+      Object.entries(spec.fields).forEach(([field,definition]) => walk(a?.[field],b?.[field],definition,[...path,label],field));
+      return;
+    }
+    if (spec.type === 'list' && ['object','workItem'].includes(spec.item.type)) {
+      const oldItems = a || [];
+      const { pairs,removed } = pairRecords(oldItems,b || []);
+      for (const { item,index } of removed) {
+        add([...path,titleFor(item,spec.item,index,before),'已刪除'].join('／'),describeChange(item,spec.item,before),'—');
+      }
+      for (const {item,oldIndex,newIndex} of pairs) {
+        const name = titleFor(item,spec.item,newIndex,after);
+        if (oldIndex < 0) add([...path,name,'新增'].join('／'),'—',describeChange(item,spec.item,after));
+        else walk(oldItems[oldIndex],item,{ ...spec.item,label:name },path,'');
+      }
+      const matched = pairs.filter(({oldIndex}) => oldIndex >= 0);
+      const oldOrder = [...matched].sort((a,b) => a.oldIndex - b.oldIndex);
+      if (matched.some((item,index) => item.oldIndex !== oldOrder[index].oldIndex)) {
+        add(title + '／順序',
+          oldOrder.map(({oldIndex}) => titleFor(oldItems[oldIndex],spec.item,oldIndex,before)).join(' → '),
+          matched.map(({item,newIndex}) => titleFor(item,spec.item,newIndex,after)).join(' → '));
+      }
+      return;
+    }
+    if (spec.type === 'list' && spec.item.type === 'text' && !same(a || [],b || [])) {
+      const oldText = (a || []).map((item) => namesIn(item,before));
+      const newText = (b || []).map((item) => namesIn(item,after));
+      if (!same(oldText,newText)) add(title,oldText.join('\n') || '—',newText.join('\n') || '—');
+      return;
+    }
+    if (same(a,b)) return;
+    const oldText = describeChange(a,spec,before);
+    const newText = describeChange(b,spec,after);
+    if (oldText !== newText) add(title,oldText,newText);
+  }
+  Object.entries(schema.fields).forEach(([key,spec]) => walk(before[key],after[key],spec,[],key));
+  if (privateChanged) add('內部備註','上一版備註','已更新，僅管理者可見');
+  return entries;
 }
-window.addEventListener('message', (event) => {
-  const session = previewSession;
-  if (!session || event.source !== session.frame.contentWindow || event.origin !== session.origin) return;
-  if (event.data?.type !== 'staff-preview-ready' || event.data?.nonce !== session.nonce) return;
-  clearTimeout(session.timer);
-  session.frame.contentWindow.postMessage({ type:'staff-preview-data', nonce:session.nonce, data:session.data }, session.origin);
-  message('正在預覽目前草稿。');
-});
+
+function showReview(comparison) {
+  const body = panel('發布前確認');
+  const changes = reviewChanges(comparison.before,comparison.after,model.schema);
+  body.append(node('p',changes.length ? '請核對草稿與最新發布版本的變更。' : '目前草稿與最新發布版本沒有內容差異。'));
+  const list = node('ul');
+  list.className = 'changes';
+  for (const change of changes) {
+    const item = node('li');
+    const values = node('dl');
+    values.append(node('dt','修改前'),node('dd',change.before),node('dt','修改後'),node('dd',change.after));
+    item.append(node('h3',change.title),values);
+    list.append(item);
+  }
+  body.append(list);
+  const summary = node('input');
+  summary.id = 'publish-summary';
+  summary.maxLength = 160;
+  const label = node('label');
+  label.className = 'field';
+  label.append(node('span','更新摘要（選填）'),summary);
+  body.append(label);
+  get('panel-actions').hidden = false;
+  get('panel-actions').append(button('取消',closePanel),button('確認發布',async () => {
+    if (busy) return;
+    dismissPanel();
+    await perform(async () => {
+      await applyState(await rpc('publish',{ revision:comparison.revision, summary:summary.value }));
+      message('發布成功。工作人員將讀取這次更新。');
+    },'發布失敗，伺服器草稿仍保留');
+  },'primary'));
+}
+get('publish').onclick = () => {
+  if (dirty) { message('請先儲存草稿，再比較差異及發布。', true); return; }
+  return perform(async () => showReview(await rpc('review',{ revision:model.revision })),'無法取得發布差異');
+};
 reload();
 </script>
 </body>

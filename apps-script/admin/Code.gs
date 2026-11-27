@@ -29,7 +29,16 @@ function adminRequest(action, input) {
       return { ...state, schema: staffSchema_(), siteUrl: staffSiteUrl_() };
     }
     case 'preview':
-      return publicStaff_(payload.data);
+      validateStaff_(payload.data);
+      return publicStaff_(linkStaffNames_(payload.data));
+    case 'review': {
+      const target = sheet();
+      const rows = staffRows_(target);
+      const last = rows[rows.length - 1];
+      if (!last || payload.revision !== last.revision) throw staffConflict_();
+      const published = rows.filter(({ action }) => action === 'publish').pop();
+      return { before: readPrivate_(target, published), after: readPrivate_(target, last), revision: last.revision };
+    }
     case 'export': {
       const target = sheet();
       const rows = staffRows_(target);
@@ -145,7 +154,7 @@ function changeStaff_(action, payload) {
     const rows = staffRows_(sheet);
     const last = rows[rows.length - 1];
     if (payload.revision !== (last?.revision || 0)) {
-      throw new Error('版本衝突：其他管理者已更新資料。請先匯出這個畫面的修改，再重新讀取最新草稿。');
+      throw staffConflict_();
     }
     if (action === 'initialize' ? Boolean(last) : !last) {
       throw new Error(action === 'initialize' ? '資料已初始化。' : '請先初始化草稿。');
@@ -185,4 +194,8 @@ function changeStaff_(action, payload) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function staffConflict_() {
+  return new Error('版本衝突：其他管理者已更新資料。請先到進階設定匯出目前修改，再重新讀取最新草稿。');
 }

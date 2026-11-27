@@ -93,14 +93,22 @@
     return payload;
   }
 
-  function previewData(onData) {
-    let finished = false;
+  function previewData(onData, onNavigate) {
+    if (!preview) return;
+    let editorOrigin;
     function receive(event) {
-      if (finished || event.source !== window.parent || !/^https:\/\/(?:[\w-]+\.)*googleusercontent\.com$|^https:\/\/script\.google\.com$/.test(event.origin)) return;
-      if (event.data?.type !== "staff-preview-data" || event.data.nonce !== nonce || !isData(event.data.data)) return;
-      finished = true;
-      window.removeEventListener("message", receive);
-      onData(event.data.data);
+      if (event.source !== window.parent || !/^https:\/\/(?:(?:[\w-]+\.)*googleusercontent\.com|script\.google\.com)$/.test(event.origin)) return;
+      const message = event.data;
+      if (message?.nonce !== nonce || (editorOrigin && editorOrigin !== event.origin)) return;
+      if (message.type === "staff-preview-data" && isData(message.data)) {
+        editorOrigin = event.origin;
+        const select = message.editing === true ? (target) =>
+          window.parent.postMessage({ type: "staff-preview-edit", nonce, target }, editorOrigin) : null;
+        onData(message.data, select);
+        window.parent.postMessage({ type: "staff-preview-rendered", nonce }, editorOrigin);
+      } else if (editorOrigin && message.type === "staff-preview-navigate") {
+        onNavigate?.(message.section);
+      }
     }
     window.addEventListener("message", receive);
     window.parent.postMessage({ type: "staff-preview-ready", nonce }, "*");

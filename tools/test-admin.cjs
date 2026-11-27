@@ -12,7 +12,7 @@ const admin = read("apps-script/admin/Code.gs");
 const reader = read("apps-script/public/Code.gs");
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const owner = "allowed@example.test";
-const api = vm.runInNewContext(schema + "\n({ validateStaff_, publicStaff_, linkStaffNames_ });");
+const api = vm.runInNewContext(schema + "\n({ staffSchema_, validateStaff_, publicStaff_, linkStaffNames_ });");
 
 function newDraft() {
   return clone(api.linkStaffNames_({ ...baseline, sections: {}, privateNotes: "" }));
@@ -214,10 +214,10 @@ test("distribution rows use published work items and updated people rather than 
   assert.deepEqual(changed.unassigned, [secondFlower, flower]);
 });
 
-test("draft preview requires the parent Apps Script origin and the one-time nonce", () => {
+test("live preview verifies the parent, locks its origin, and only enables editing on request", () => {
   const nonce = "01234567-89ab-4cde-9f01-23456789abcd";
   const posted = [];
-  const parent = { postMessage: (data) => posted.push(data) };
+  const parent = { postMessage: (data, origin) => posted.push({ data, origin }) };
   let listener;
   const window = {
     parent,
@@ -228,29 +228,84 @@ test("draft preview requires the parent Apps Script origin and the one-time nonc
     window, location: { hash: "#staff-preview=" + nonce },
     get localStorage() { throw new Error("Preview must not use public cache."); }
   });
-  let received;
-  window.weddingStaffSource.previewData((data) => { received = data; });
-  assert.equal(posted[0].nonce, nonce);
+  let received, select, destination;
+  window.weddingStaffSource.previewData((data, edit) => { received = data; select = edit; },
+    (section) => { destination = section; });
+  assert.equal(posted[0].data.nonce, nonce);
   const event = { source: parent, data: { type: "staff-preview-data", nonce, data: baseline } };
+  const origin = "https://test-script.googleusercontent.com";
   listener({ ...event, origin: "https://example.test" });
   assert.equal(received, undefined);
-  listener({ ...event, origin: "https://test-script.googleusercontent.com", data: { ...event.data, nonce: "incorrect" } });
+  listener({ ...event, origin, data: { ...event.data, nonce: "incorrect" } });
   assert.equal(received, undefined);
-  listener({ ...event, origin: "https://test-script.googleusercontent.com" });
+  listener({ ...event, origin, source: {}, data: { ...event.data, editing:true } });
+  assert.equal(received, undefined);
+  listener({ ...event, origin });
   assert.equal(received, baseline);
-  assert.equal(listener, null);
+  assert.equal(select, null);
+  listener({ ...event, origin: "https://unrelated.googleusercontent.com", data: { ...event.data, editing:true } });
+  assert.equal(select, null);
+  listener({ ...event, origin, data: { ...event.data, editing:true } });
+  select({ area:"event", id:"staff-arrival" });
+  assert.equal(posted.at(-1).origin, origin);
+  assert.equal(posted.at(-1).data.target.id, "staff-arrival");
+  listener({ ...event, origin, data: { type:"staff-preview-navigate", nonce, section:"teams" } });
+  assert.equal(destination, "teams");
 });
 
 test("the server checks Google identity for every admin operation", () => {
   const server = simulate();
   for (const address of ["", "intruder@example.test"]) {
     server.login(address);
-    for (const action of ["load", "preview", "export", "initialize", "save", "publish", "restore"]) {
+    for (const action of ["load", "preview", "review", "export", "initialize", "save", "publish", "restore"]) {
       assert.throws(() => server.rpc(action), /沒有管理權限/, action);
     }
   }
   assert.equal(server.grid.length, 0);
   assert.equal(server.json().ok, false);
+});
+
+test("editor compares changes in Chinese and previews the exact public projection without writing", () => {
+  const editor = read("apps-script/admin/Editor.html").match(/<script>([\s\S]+)<\/script>/)[1].replace(/\nreload\(\);\s*$/, "");
+  const inertElement = { addEventListener() {} };
+  const reviewChanges = vm.runInNewContext(editor + "\nreviewChanges", {
+    document:{ getElementById:() => ({ ...inertElement }) }, window:inertElement
+  });
+  const server = simulate();
+  const initialDraft = newDraft();
+  initialDraft.teams.find(({id}) => id === "hall-b-ushers").memberIds = ["a-jie"];
+  const original = server.rpc("initialize", { revision:0, data:initialDraft });
+  const published = server.rpc("publish", { revision:original.revision });
+  const changed = clone(published.draft);
+  const event = changed.schedule[0].events[0];
+  event.time = "09:35–10:00";
+  event.summary = "新增測試工作，由友蕾協助。";
+  changed.schedule[0].events[1].overviewHidden = true;
+  const team = changed.teams.find(({id}) => id === "hall-b-ushers");
+  team.leaderId = "zhu-yu-lin";
+  team.memberIds = ["zhu-yu-lin", "a-jie"];
+  changed.privateNotes = "release-review-private";
+  changed.photoGroups.groups = [{ name:"測試新組別" }];
+  changed.cameraPositions.reverse();
+  const projection = server.rpc("preview", { data:changed });
+  assert.equal(server.rpc("load").revision,published.revision);
+  assert.doesNotMatch(JSON.stringify(projection), /release-review-private/);
+  const saved = server.rpc("save", { revision:published.revision, data:changed });
+  assert.equal(server.json().version,published.revision);
+  const compare = server.rpc("review", { revision:saved.revision });
+  const changes = reviewChanges(compare.before, compare.after, api.staffSchema_());
+  assert(changes.some(({ title,after }) => title.includes("時間") && after === "09:35–10:00"));
+  assert(changes.some(({ title,after }) => title.includes("組員") && after === "朱育麟、阿傑"));
+  assert(changes.some(({ title,after }) => title.includes("工作說明") && after.includes("友蕾")));
+  assert(changes.some(({ title,before,after }) => title.includes("從當日總流程隱藏") && before === "顯示" && after === "隱藏"));
+  assert(changes.some(({ title }) => title.includes("直播機位") && title.endsWith("順序")));
+  assert(changes.some(({ title }) => title.includes("測試新組別") && title.endsWith("新增")));
+  assert.doesNotMatch(JSON.stringify(changes), /release-review-private|zhu-yu-lin|a-jie/);
+  const later = server.rpc("save", { revision:saved.revision, data:changed });
+  assert.throws(() => server.rpc("review", { revision:compare.revision }), /版本衝突/);
+  assert.throws(() => server.rpc("publish", { revision:compare.revision }), /版本衝突/);
+  server.rpc("publish", { revision:later.revision });
+  assert.deepEqual(server.json().data,projection);
 });
 
 test("public reader distinguishes a no-data reply from a failed connection", async () => {
