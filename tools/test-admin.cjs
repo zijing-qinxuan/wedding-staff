@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const baseline = require("../data.js");
+const staffRoster = require("../staff-roster.js");
 
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 const schema = read("apps-script/admin/Schema.gs");
@@ -165,6 +166,52 @@ test("overview, guide routing, roster visibility, and private work items are ind
   assert.equal(noOverview.schedule[0].events.find(({ id }) => id === "makeup").summary, makeup.summary);
   draft.teams.find(({ id }) => id === "bridal-aid").hidden = true;
   assert.doesNotMatch(JSON.stringify(api.publicStaff_(draft)), /新秘助手|private-work-item/);
+});
+
+test("every published team keeps its members and leaders by role, including dual assignments", () => {
+  const draft = newDraft();
+  const published = api.publicStaff_(draft);
+  for (const team of draft.teams) {
+    const output = published.teams.find(({ id }) => id === team.id);
+    assert.equal(output.leaderId, team.leaderId);
+    assert.deepEqual(clone(output.memberIds), team.memberIds);
+    assert.deepEqual([...(output.supportIds || [])], team.supportIds || []);
+    assert.deepEqual([...(output.candidateIds || [])], team.candidateIds || []);
+    const roles = new Map(staffRoster.teamRoles(output));
+    assert.deepEqual(roles.get("組員") || [], team.memberIds);
+    assert.ok(team.memberIds.every((id) => published.people.some((person) => person.id === id)));
+  }
+  const member = "fixture-person";
+  const repeated = {
+    leaderId: member, memberIds: [member, member], supportIds: [member, member], candidateIds: [member]
+  };
+  assert.deepEqual(staffRoster.teamRoles(repeated), [
+    ["負責人", [member]], ["組員", [member]], ["支援", [member]], ["待核對", [member]]
+  ]);
+  assert.deepEqual(staffRoster.teamRoles({ memberIds: [member] }), [["組員", [member]]]);
+});
+
+test("distribution rows use published work items and updated people rather than fixed names or member order", () => {
+  const draft = newDraft();
+  const badges = draft.teams.find(({ id }) => id === "badges");
+  const [flower, secondFlower, badge] = badges.memberIds;
+  draft.people.find(({ id }) => id === badge).name = "改名測試";
+  badges.memberIds.reverse();
+  const published = api.publicStaff_(draft);
+  const people = new Map(published.people.map(({ id, name }) => [id, name]));
+  const team = published.teams.find(({ id }) => id === "badges");
+  const roles = staffRoster.distribution(team, people);
+  assert.deepEqual(roles.roles, [["胸花發放", [flower, secondFlower]], ["工作人員胸章發放", [badge]]]);
+  assert.equal(people.get(roles.roles[1][1][0]), "改名測試");
+  const changed = staffRoster.distribution({
+    ...team,
+    periods: [{ items: [
+      "胸花發放：" + people.get(badge) + "、" + people.get(badge),
+      "工作人員胸章發放：" + people.get(badge) + "、名單外測試人員"
+    ] }]
+  }, people);
+  assert.deepEqual(changed.roles, [["胸花發放", [badge]], ["工作人員胸章發放", [badge]]]);
+  assert.deepEqual(changed.unassigned, [secondFlower, flower]);
 });
 
 test("draft preview requires the parent Apps Script origin and the one-time nonce", () => {

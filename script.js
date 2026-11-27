@@ -117,7 +117,6 @@
   function collectGuides() {
     const leaders = data.management || [];
     const guides = new Map();
-    const usherIds = groupDefinitions[0].teams;
     const usherLead = leaders.find(({ role }) => role.includes("招待組負責人"));
     const coordinators = leaders.filter((entry) => entry !== usherLead);
     if (coordinators.length || data.cleanup) {
@@ -145,22 +144,24 @@
       const group = ensureGuide("ushers", "招待組");
       group.manager = usherLead;
       group.leader = usherLead.personId;
-    } else {
-      const group = guides.get("ushers");
-      if (group) group.leader = group.teams.find((team) => usherIds.includes(team.id) && team.leaderId)?.leaderId;
     }
     return [...guides.values()];
   }
 
-  function roster(team, omitLead) {
-    const parts = [];
-    if (team.leaderId && team.leaderId !== omitLead) parts.push("負責人 " + personName(team.leaderId));
-    const members = team.memberIds.filter((id) => id !== team.leaderId && id !== omitLead);
-    if (members.length) parts.push(members.map(personName).join("、"));
-    if (team.supportIds?.length) parts.push("支援 " + team.supportIds.map(personName).join("、"));
-    if (team.candidateIds?.length) parts.push("待核對 " + team.candidateIds.map(personName).join("、"));
-    if (!parts.length && !team.leaderId && !team.memberIds.length) parts.push("待公布");
-    return parts.join("｜");
+  function roleNames(ids) {
+    return ids.length ? ids.map(personName).join("、") : "待公布";
+  }
+
+  function rosterText(roles) {
+    return roles.map(([label, ids]) => label + " " + roleNames(ids)).join("｜");
+  }
+
+  function indexEntry(parent, team, label, text) {
+    const entry = element("p");
+    entry.dataset.teamId = team.id;
+    if (label) entry.append(element("span", "roster-label", label + "　"));
+    entry.append(document.createTextNode(text));
+    parent.append(entry);
   }
 
   function renderIndex(guides) {
@@ -174,16 +175,22 @@
       const names = element("dd");
       if (guide.leader) paragraph(names, "負責人 " + personName(guide.leader));
       teams.forEach((team) => {
-        const entry = element("p");
-        if (teams.length > 1 || team.name !== guide.title) entry.append(element("span", "roster-label", team.name + "　"));
-        entry.append(document.createTextNode(roster(team, guide.leader)));
-        if (entry.textContent.trim()) names.append(entry);
+        const label = teams.length > 1 || team.name !== guide.title ? team.name : "";
+        const distribution = staffRoster.distribution(team, people);
+        if (distribution) {
+          for (const [role, ids] of distribution.roles) indexEntry(names, team, role, roleNames(ids));
+          const otherRoles = staffRoster.teamRoles(team, distribution.unassigned);
+          if (otherRoles.length) indexEntry(names, team, label, rosterText(otherRoles));
+        } else {
+          indexEntry(names, team, label, rosterText(staffRoster.teamRoles(team)) || "待公布");
+        }
       });
       if (guide.managers?.length) {
         guide.managers.forEach(({ role, personId }) => paragraph(names, role + " " + personName(personId)));
       } else if (guide.indexVisible && data.cleanup) {
-        const namesOnly = [...new Set(data.cleanup.areas.map(({ leaderId }) => leaderId).filter(Boolean))];
-        paragraph(names, namesOnly.map(personName).join("、"));
+        data.cleanup.areas.forEach(({ name, leaderId }) => {
+          if (leaderId) paragraph(names, name + " " + personName(leaderId));
+        });
       }
       const action = link("guide-" + guide.id, "查看指南", "index-link");
       action.setAttribute("aria-label", "查看" + guide.title + "指南");
@@ -207,16 +214,22 @@
     return null;
   }
 
-  function renderWork(parent, team, { lead, showTitle, omit = [], showStorage = true } = {}) {
+  function renderWork(parent, team, { showTitle, omit = [], showStorage = true } = {}) {
     const work = element("div", "team-work");
+    work.dataset.teamId = team.id;
     if (showTitle) work.append(element("h4", "", team.name));
-    paragraph(work, roster(team, lead), "roster");
+    const distribution = staffRoster.distribution(team, people);
+    const roles = staffRoster.teamRoles(team, distribution?.unassigned);
+    paragraph(work, rosterText(roles) || (distribution ? "" : "待公布"), "roster");
     paragraph(work, team.deadline, "deadline");
     const periods = team.periods.map(({ label, scheduleId, items }) => {
       const time = eventsById.get(scheduleId)?.time;
       return {
         label: time ? time + "　" + label : label,
-        items: items.filter((item) => !omit.includes(item)),
+        items: items.filter((item) => !omit.includes(item)).map((item) => {
+          const assignment = distribution?.items.get(item);
+          return assignment ? assignment.role + "：" + roleNames(assignment.ids) : item;
+        }),
         rank: time ? timeNumber(time) : periodTime(label)
       };
     });
@@ -290,7 +303,7 @@
     }
     renderManagers(body, guide);
     guide.teams.forEach((team) => renderWork(body, team, {
-      lead: guide.leader, showTitle: guide.title !== team.name, omit: common,
+      showTitle: guide.title !== team.name, omit: common,
       showStorage: guide.teams.length === 1
     }));
     if (guide.teams.length > 1 && guide.teams.some(({ periods }) => periods.some(({ items }) => items.some((item) => /撤場|撤收|復原/.test(item))))) {
