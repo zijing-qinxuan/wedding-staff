@@ -6,6 +6,7 @@ const vm = require("node:vm");
 const baseline = require("../data.js");
 const staffRoster = require("../staff-roster.js");
 const staffPersonalGuide = require("../staff-personal-guide.js");
+const staffExecution = require("../staff-execution.js");
 
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 const schema = read("apps-script/admin/Schema.gs");
@@ -81,6 +82,82 @@ test("personal guide uses published relation IDs, linked times and no private or
   server.rpc("publish", { revision:saved.revision });
   assert.equal(staffPersonalGuide.build(server.json().data, person.id).name,"改名工作員");
   assert.match(JSON.stringify(staffPersonalGuide.build(server.json().data, person.id)),/變更新工作/);
+});
+
+
+test("execution references share canonical group work across overview, detailed timing and personal guides", () => {
+  const server = simulate();
+  const draft = newDraft();
+  const event = draft.schedule[0].events.find(({id}) => id === "guest-entry");
+  const team = draft.teams.find(({id}) => id === "dessert");
+  const period = team.periods[0];
+  team.place = "組別預設地點";
+  period.items[0] = {
+    id:"linked-setup-test", text:"聯動工作", leaderId:"meng-xuan", memberIds:["a-jie"],
+    place:"工作地點覆寫", time:"13:36", detailManaged:true
+  };
+  event.work = [
+    { id:"standalone-test", text:"獨立合作", teamId:team.id, leaderId:"chen-xuan", memberIds:["a-jie"] },
+    { id:"reference-test", workId:"linked-setup-test" }
+  ];
+  const first = server.rpc("initialize",{ revision:0,data:draft });
+  const preview = server.rpc("preview",{ data:first.draft });
+  const plan = staffExecution.collect(preview,staffPersonalGuide);
+  const block = plan.groups.find(({key}) => key === "event-guest-entry");
+  assert.deepEqual(block.rows.slice(0,2).map(({text}) => text),["獨立合作","聯動工作"]);
+  assert.equal(block.rows[0].place,"組別預設地點");
+  assert.equal(block.rows[1].place,"工作地點覆寫");
+  assert.equal(block.rows[1].time,"13:36");
+  assert.equal(plan.groups.flatMap(({rows}) => rows).filter(({text}) => text === "聯動工作").length,1);
+
+  const guide = (id, snapshot = preview) => staffPersonalGuide.build(snapshot,id,
+    { execution:staffExecution.collect(snapshot,staffPersonalGuide) });
+  const linked = guide("meng-xuan").tasks.find(({text}) => text === "聯動工作");
+  assert.equal(linked.when,"13:36");
+  assert.equal(linked.place,"工作地點覆寫");
+  assert.equal(linked.kind,"個人分工");
+  assert(!guide("meng-xuan").tasks.some(({text}) => text === "獨立合作"));
+  assert(!guide("chen-xuan").tasks.some(({text}) => text === "聯動工作"));
+  assert(guide("a-jie").tasks.some(({text}) => text === "聯動工作"));
+  assert(guide("a-jie").tasks.some(({text}) => text === "獨立合作"));
+
+  const published = server.rpc("publish",{revision:first.revision});
+  assert.deepEqual(server.json().data,preview);
+  assert.deepEqual(clone(published.draft.schedule[0].events.find(({id})=>id==="guest-entry").work[1]),event.work[1]);
+
+  const edited = clone(published.draft);
+  const editedEvent = edited.schedule[0].events.find(({id}) => id === "guest-entry");
+  editedEvent.overviewTitle = "只改簡短摘要";
+  editedEvent.work.reverse();
+  const canonical = edited.teams.find(({id})=>id==="dessert").periods[0].items[0];
+  canonical.text = "修改同一筆工作";
+  const saved = server.rpc("save",{revision:published.revision,data:edited});
+  assert(!guide("meng-xuan",server.json().data).tasks.some(({text})=>text==="修改同一筆工作"));
+  const changed = server.rpc("preview",{data:saved.draft});
+  assert.equal(staffExecution.collect(changed,staffPersonalGuide).groups.find(({key})=>key==="event-guest-entry").rows[0].text,"修改同一筆工作");
+  assert(guide("meng-xuan",changed).tasks.some(({text})=>text==="修改同一筆工作"));
+
+  editedEvent.work[0].hidden = true;
+  const hiddenLink = api.publicStaff_(edited);
+  assert(!staffExecution.collect(hiddenLink,staffPersonalGuide).groups.some(({rows})=>rows.some(({text})=>text==="修改同一筆工作")));
+  assert(guide("meng-xuan",hiddenLink).tasks.some(({text})=>text==="修改同一筆工作"));
+  canonical.hidden = true;
+  const hiddenSource = api.publicStaff_(edited);
+  assert.doesNotMatch(JSON.stringify(hiddenSource),/修改同一筆工作|reference-test/);
+});
+
+test("execution schema rejects dangling links, duplicate references and conflicting copies", () => {
+  const draft = newDraft();
+  const event = draft.schedule[0].events[0];
+  event.work = [{ id:"dangling-reference", workId:"missing-item" }];
+  assert.throws(()=>api.validateStaff_(draft),/找不到參照/);
+  draft.teams[0].periods[0].items[0] = { id:"real-task", text:"測試連結" };
+  event.work[0].workId = "real-task";
+  event.work[0].place = "不應有重複資料";
+  assert.throws(()=>api.validateStaff_(draft),/在引用來源設定/);
+  delete event.work[0].place;
+  event.work.push({ id:"duplicate-reference", workId:"real-task" });
+  assert.throws(()=>api.validateStaff_(draft),/只能引用一次/);
 });
 
 function simulate() {

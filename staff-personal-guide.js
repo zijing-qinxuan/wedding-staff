@@ -43,9 +43,9 @@ const staffPersonalGuide = (() => {
       [5, events.get("couple-leave")?.time],
       [6, events.get("reception-arrival")?.time, events.get("reception-start")?.time]
     ].map(([index, ...times]) => [index, times.map(minute).find((value) => value !== null)]);
-    function position(label, { scheduleId, fallback = 7, reception = false } = {}) {
+    function position(label, { scheduleId, fallback = 7, reception = false, time } = {}) {
       const linked = events.get(scheduleId);
-      const clock = minute(linked?.time) ?? minute(label);
+      const clock = minute(time) ?? minute(linked?.time) ?? minute(label);
       const clockStage = clock === null ? 7
         : anchors.reduce((index, [next, start]) => start !== undefined && clock >= start ? next : index, 0);
       let stage = reception ? 6 : clockStage;
@@ -55,7 +55,7 @@ const staffPersonalGuide = (() => {
       const ceremonyOrder = stage === 3 ? [
         /(?:新娘|新人).*進場|走出小房間|上台/, /演講/, /婚誓前|婚誓開始前/, /婚誓|交換戒指/, /禱告/, /唱詩/
       ].findIndex((pattern) => pattern.test(label)) : -1;
-      const linkedTime = linked?.time || "";
+      const linkedTime = time || linked?.time || "";
       const when = linkedTime && label && !label.includes(linkedTime) ? linkedTime + "　" + label : label || linkedTime || phaseNames[stage];
       const date = linked && linked.dayIndex !== weddingDay ? linked.date + "｜" : "";
       const phaseStart = anchors.find(([index]) => stage === index)?.[1];
@@ -147,7 +147,7 @@ const staffPersonalGuide = (() => {
     return blocks;
   }
 
-  function build(data, personId, { guideByTeam = new Map(), guideByManager = new Map() } = {}) {
+  function build(data, personId, { guideByTeam = new Map(), guideByManager = new Map(), execution } = {}) {
     const names = namesFor(data.people || []);
     if (!names.byId.has(personId)) return null;
     const flow = timeline((data.schedule || []).filter((day) => !day.hidden));
@@ -181,9 +181,10 @@ const staffPersonalGuide = (() => {
       const timing = flow.position(label, options);
       timing.order.push(kind === "工作交接" ? -1 : 0);
       const content = names.display(text);
-      const key = [kind, compact(content), timing.when].join("\0");
+      const place = options.place || "";
+      const key = [kind, compact(content), timing.when, place].join("\0");
       const previous = rows.get(key);
-      if (!previous) rows.set(key, { ...timing, kind, scopes: [scope], text: content });
+      if (!previous) rows.set(key, { ...timing, kind, scopes: [scope], text: content, place });
       else if (!previous.scopes.some(({ title }) => title === scope.title)) previous.scopes.push(scope);
     }
 
@@ -241,9 +242,18 @@ const staffPersonalGuide = (() => {
         if (fallback !== 7 && !period.scheduleId && phase(label) === 7 && minute(label) === null) {
           label = [backdropStart, label].filter(Boolean).join("｜");
         }
-        const items = period.items || [];
-        items.forEach((item) => {
+        const items = (period.items || []).filter((item) => !item?.hidden);
+        items.forEach((item, itemIndex) => {
           const text = workText(item);
+          const assignment = execution?.rowsFor(team, period, item, 0, itemIndex);
+          const timing = { ...options, scheduleId: assignment?.scheduleId || period.scheduleId, fallback,
+            time: item?.time, place: assignment?.place || (!settings.venues ? item?.place || team.place : "") };
+          const assigned = [item?.leaderId, ...(item?.memberIds || [])].filter(Boolean);
+          const when = item?.phase || (item?.id && assignment?.scheduleId !== period.scheduleId ? "" : label);
+          if (assigned.length) {
+            if (assigned.includes(personId)) add(scope, "個人分工", text, when, timing);
+            return;
+          }
           // Named camera positions and fixed cameras are covered by their
           // structured operators where that section is published.
           const cameraCode = period.label === "機位" && text.match(/^([\w-]+)[：:]/)?.[1];
@@ -251,13 +261,13 @@ const staffPersonalGuide = (() => {
             !entry.hidden && (entry.label === cameraCode || entry.id === cameraCode));
           if (camera) return;
           if (cameraCode && !names.subject(text)) return;
-          periodTasks(scope, [item], label, { member: active, owner, timing: { ...options, scheduleId: period.scheduleId, fallback } });
+          periodTasks(scope, [item], when, { member: active, owner, timing });
         });
       }
       periodTasks(scope, team.notes || [], "", { timing: options });
       for (const event of flow.events.values()) {
         if (event.timeOnly || !event.guideTeamIds?.includes(team.id)) continue;
-        const optionsForEvent = { ...options, scheduleId: event.id };
+        const optionsForEvent = { ...options, scheduleId: event.id, place: execution?.rowsFor(team, {}, "", 0, 0).place };
         const label = event.status === "tentative" && !/^(預計|暫定)/.test(event.title) ? "預計" + event.title : event.title;
         periodTasks(scope, [event.summary, ...(event.details || [])], label, { member: active, timing: optionsForEvent });
       }
@@ -265,6 +275,18 @@ const staffPersonalGuide = (() => {
 
     teams.forEach((team) => collectTeam(team, false));
     (reception?.groups || []).filter((team) => !team.hidden).forEach((team) => collectTeam(team, true));
+    for (const row of execution?.standalone || []) {
+      const assigned = [row.leaderId, ...(row.memberIds || [])].filter(Boolean);
+      const belongs = row.team && [row.team.leaderId, ...(row.team.memberIds || []), ...(row.team.supportIds || [])].includes(personId);
+      const scope = row.team ? scopeFor(row.team) : { title: row.scope, target: "schedule" };
+      if (!assigned.length) {
+        periodTasks(scope, [row.text], row.phase || "", { member: belongs, timing: row });
+        continue;
+      }
+      if (!assigned.includes(personId)) continue;
+      if (!belongs) role(scope, row.leaderId === personId ? "工作負責人" : "工作人員");
+      add(scope, "個人分工", row.text, row.phase, row);
+    }
     if (reception && names.heading(reception.advanceTeam || "")?.ids.includes(personId)) {
       const scope = { title: "婚宴先遣", target: "reception" };
       role(scope, "先遣人員");
@@ -296,8 +318,8 @@ const staffPersonalGuide = (() => {
         const position = "機位 " + code;
         const trigger = handoffs.find((entry) => entry.to.endsWith(position))?.trigger || camera.work.match(/(?:新娘|新人)?進場/)?.[0];
         role(scope, position);
-        add(scope, "個人分工", [camera.place, camera.work].filter(Boolean).join("｜"),
-          [trigger, position].filter(Boolean).join("｜"), { fallback: 3 });
+        add(scope, "個人分工", camera.work,
+          [trigger, position].filter(Boolean).join("｜"), { fallback: 3, place: settings.venues ? "" : camera.place });
       });
       if (data.avInfo?.operatorId === personId) {
         const av = teams.find(({ id }) => id === "av");
@@ -311,7 +333,8 @@ const staffPersonalGuide = (() => {
         const scope = { title: "正式大合照", target: "photos" };
         if (photo.photographerId === personId) role(scope, "攝影");
         if (photo.hostId === personId) role(scope, "主持");
-        add(scope, "個人分工", [photo.location, photo.photographerId === personId && "攝影", photo.hostId === personId && "主持"].filter(Boolean).join("｜"), "大合照");
+        add(scope, "個人分工", [photo.photographerId === personId && "攝影", photo.hostId === personId && "主持"].filter(Boolean).join("｜"),
+          "大合照", { place: settings.venues ? "" : photo.location });
       }
       const backdropTeam = teams.find(({ id }) => id === "backdrop-photo-print");
       for (const service of services) {
@@ -330,9 +353,9 @@ const staffPersonalGuide = (() => {
         const scope = { title: area.name, target: "cleanup" };
         if (area.leaderId === personId) {
           role(scope, "負責人");
-          add(scope, "撤場確認", area.note, "撤場");
+          add(scope, "撤場確認", area.note, "撤場", { place: settings.venues ? "" : area.name });
         }
-        periodTasks(scope, area.items || [], "撤場");
+        periodTasks(scope, area.items || [], "撤場", { timing: { place: settings.venues ? "" : area.name } });
       }
       for (const item of data.cleanup.logistics || []) {
         if (!item.hidden) periodTasks({ title: item.title, target: "cleanup" }, [item.text], "撤場");
@@ -348,7 +371,7 @@ const staffPersonalGuide = (() => {
     return { name: names.byId.get(personId), roles: [...roles.values()], tasks };
   }
 
-  return { build };
+  return { build, timeline, minute, phaseNames };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = staffPersonalGuide;

@@ -16,6 +16,9 @@
   let editSelection;
   let personalEnabled = false;
   let personalLinks;
+  let execution;
+  let scheduleMode = "overview";
+  let sharedPersonOpened = false;
   let openPerson;
   let returnPoint;
   const personalDialog = find("personal-guide");
@@ -158,6 +161,76 @@
     return content.length > 0;
   }
 
+  function renderScheduleMode() {
+    const detailed = personalEnabled && scheduleMode === "detail";
+    find("timeline-days").hidden = detailed;
+    const content = find("timeline-work");
+    content.hidden = !detailed;
+    document.querySelectorAll(".schedule-modes button").forEach((button) => {
+      button.disabled = button.dataset.mode === "detail" && !personalEnabled;
+      button.setAttribute("aria-pressed", String(button.dataset.mode === (detailed ? "detail" : "overview")));
+    });
+    if (!detailed) return;
+    content.replaceChildren();
+    for (const group of execution.groups) {
+      const block = element("section", "execution-group");
+      block.append(element("h3", "", group.label));
+      const rows = element("ul", "execution-rows");
+      const assignments = [];
+      for (const row of group.rows) {
+        const key = JSON.stringify([row.team?.id, row.scope, row.leaderId, row.memberIds, row.time, row.phase, row.place,
+          Boolean(row.coordinating), Boolean(row.handoff)]);
+        if (assignments.at(-1)?.key === key) assignments.at(-1).tasks.push(row);
+        else assignments.push({ key, tasks: [row] });
+      }
+      for (const { tasks } of assignments) {
+        const [row] = tasks;
+        const li = element("li", "execution-row");
+        const responsibility = element("div", "execution-responsibility");
+        const name = row.team?.name || row.scope;
+        if (name) responsibility.append(element("strong", "", name));
+        const assigned = [...new Set(row.memberIds || [])].filter((id) => id !== row.leaderId);
+        if (row.leaderId) {
+          personParagraph(responsibility, row.coordinating ? "統籌 " : row.handoff ? "交接 " : "負責人 ", row.leaderId, "", "muted");
+        }
+        if (assigned.length) {
+          const names = element("p", "muted", "工作人員 ");
+          appendPeople(names, assigned);
+          responsibility.append(names);
+        }
+        if (!row.leaderId && !assigned.length && row.team?.leaderId) {
+          personParagraph(responsibility, "組別負責人 ", row.team.leaderId, "", "muted");
+        }
+        const task = element("div", "execution-task");
+        paragraph(task, [row.time, row.phase, row.place].filter(Boolean).join(" · "), "muted");
+        if (tasks.length === 1) {
+          paragraph(task, row.text);
+          if (row.target) editAt(task, "詳細工作", row.target);
+        } else {
+          const items = element("ul", "execution-items");
+          for (const { text, target } of tasks) {
+            const item = element("li", "", text);
+            if (target) editAt(item, "詳細工作", target);
+            items.append(item);
+          }
+          task.append(items);
+        }
+        li.append(responsibility, task);
+        rows.append(li);
+      }
+      block.append(rows);
+      content.append(block);
+    }
+    if (!content.childElementCount) paragraph(content, "目前沒有可顯示的詳細分工。", "muted");
+  }
+
+  document.querySelector(".schedule-modes").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-mode]");
+    if (!button || !execution) return;
+    scheduleMode = button.dataset.mode;
+    renderScheduleMode();
+  });
+
   function collectGuides() {
     const leaders = data.management || [];
     const guides = new Map();
@@ -294,22 +367,36 @@
       work.append(roster);
     }
     paragraph(work, team.deadline, "deadline");
-    const periods = team.periods.map(({ label, scheduleId, items }, periodIndex) => {
+    const periods = team.periods.map((period, periodIndex) => {
+      const { label, scheduleId, items } = period;
       const time = eventsById.get(scheduleId)?.time;
       return {
         label: time ? time + "　" + label : label,
         items: items.flatMap((item, itemIndex) => {
-          if (omit.includes(item)) return [];
-          const assignment = distribution?.items.get(item);
+          const text = staffExecution.text(item);
+          if (!text || typeof item === "string" && omit.includes(text)) return [];
+          const assignment = distribution?.items.get(text);
+          const row = execution.rowsFor(team, period, item, periodIndex, itemIndex);
+          const linked = row.scheduleId !== scheduleId ? eventsById.get(row.scheduleId) : null;
           return [{
-            text: assignment ? assignment.role + "：" + roleNames(assignment.ids) : item,
+            ...row, place: typeof item === "string" ? "" : row.place,
+            text: assignment ? assignment.role + "：" + roleNames(assignment.ids) : text,
+            timing: [row.work.time || linked?.time, row.work.phase].filter(Boolean).join(" · "),
             assignment,
-            target: { area: "team", id: team.id, periodIndex, itemIndex }
           }];
         }),
         rank: time ? timeNumber(time) : periodTime(label)
       };
     });
+    for (const row of execution.standalone.filter((item) => item.team?.id === team.id)) {
+      const event = eventsById.get(row.scheduleId);
+      const time = row.time || event.time;
+      const next = periods.findIndex(({ rank }) => rank !== null && rank > timeNumber(time));
+      periods.splice(next < 0 ? periods.length : next, 0, {
+        label: [time, row.phase || event.title].filter(Boolean).join("　"),
+        rank: timeNumber(time), items: [row]
+      });
+    }
     getEvents().filter((event) => !event.timeOnly &&
       (event.guideTeamIds ?? staffOverview[event.id]?.guideTeamIds ?? []).includes(team.id)
     ).forEach((event) => {
@@ -331,11 +418,21 @@
       if (!items.length) return;
       const block = element("div", "work-period");
       const tasks = list(items.map(({ text }) => text));
-      items.forEach(({ target, assignment }, index) => {
+      items.forEach((row, index) => {
+        const { target, assignment } = row;
         const task = tasks.children[index];
         if (assignment && personalEnabled) {
           task.replaceChildren(assignment.role + "：");
           appendPeople(task, assignment.ids);
+        }
+        if (row.timing || row.place || staffExecution.people(row).length) {
+          const context = element("span", "muted execution-context",
+            [row.timing, row.place].filter(Boolean).join(" · "));
+          if (staffExecution.people(row).length) {
+            if (context.textContent) context.append(" · ");
+            appendPeople(context, staffExecution.people(row));
+          }
+          task.append(context);
         }
         editAt(task, "工作內容", target);
       });
@@ -350,7 +447,7 @@
         work.append(notes);
       }
     }
-    if (showStorage && (team.deadline || team.periods.some(({ label, items }) => /撤場|撤收|復原|拆卸/.test(label + items.join(""))))) {
+    if (showStorage && (team.deadline || team.periods.some(({ label, items }) => /撤場|撤收|復原|拆卸/.test(label + items.map(staffExecution.text).join(""))))) {
       paragraph(work, storageNote(), "muted");
     }
     parent.append(work);
@@ -363,7 +460,7 @@
   function sharedUsherDuties(teams) {
     const areas = teams.filter(({ id }) => ["hall-a-ushers", "hall-b-ushers", "downstairs-ushers"].includes(id));
     if (areas.length < 2) return [];
-    const duties = areas.map(({ periods }) => periods.flatMap(({ items }) => items));
+    const duties = areas.map(({ periods }) => periods.flatMap(({ items }) => items.filter((item) => typeof item === "string")));
     return [...new Set(duties[0])].filter((item) => duties.slice(1).every((area) => area.includes(item)));
   }
 
@@ -404,7 +501,7 @@
       showTitle: guide.title !== team.name, omit: common,
       showStorage: guide.teams.length === 1
     }));
-    if (guide.teams.length > 1 && guide.teams.some(({ periods }) => periods.some(({ items }) => items.some((item) => /撤場|撤收|復原/.test(item))))) {
+    if (guide.teams.length > 1 && guide.teams.some(({ periods }) => periods.some(({ items }) => items.some((item) => /撤場|撤收|復原/.test(staffExecution.text(item)))))) {
       paragraph(body, storageNote(), "muted");
     }
     if (guide.id === "operations" && data.cleanup) renderCleanup(body);
@@ -647,6 +744,7 @@
     personalEnabled = published;
     people = new Map(data.people.map(({ id, name }) => [id, name]));
     eventsById = new Map(getEvents().map((event) => [event.id, event]));
+    execution = staffExecution.collect(data, staffPersonalGuide);
     find("hero-couple").textContent = data.weddingInfo.couple;
     find("hero-title").textContent = data.weddingInfo.title;
     find("hero-date").textContent = data.weddingInfo.date + "・" + data.weddingInfo.weekday;
@@ -659,16 +757,18 @@
       ]),
       guideByManager: new Map(guides.flatMap((guide) =>
         [guide.manager, ...(guide.managers || [])].filter(Boolean).map(({ role }) => [role, "guide-" + guide.id])
-      ))
+      )),
+      execution
     };
     const hasSchedule = !settings.schedule && renderSchedule();
+    renderScheduleMode();
     if (settings.schedule) find("timeline-days").replaceChildren();
     const hasIndex = renderIndex(guides);
     find("personal-guide-hint").hidden = !personalEnabled || !hasIndex;
     find("guide-list").replaceChildren(...guides.map(renderGuide));
     renderReception();
     const visibility = {
-      schedule: !settings.schedule && hasSchedule,
+      schedule: !settings.schedule && (hasSchedule || execution.groups.length > 0),
       teams: !settings.allocation && hasIndex,
       guides: guides.length > 0,
       reception: !settings.reception && Boolean(data.reception)
@@ -683,6 +783,12 @@
     if (personalDialog.open) {
       if (!personalEnabled || !people.has(openPerson)) personalDialog.close();
       else showPerson(openPerson);
+    } else if (personalEnabled && !source.preview && !sharedPersonOpened) {
+      const id = new URLSearchParams(location.search).get("person");
+      if (id && people.has(id)) {
+        sharedPersonOpened = true;
+        showPerson(id);
+      }
     }
   }
 
@@ -735,6 +841,8 @@
     const scroll = personalDialog.open ? body.scrollTop : 0;
     const restoreDialogFocus = body.contains(document.activeElement);
     find("personal-guide-name").textContent = guide.name;
+    find("share-personal-guide").hidden = source.preview;
+    find("share-personal-guide").textContent = "複製連結";
     body.replaceChildren();
     if (guide.roles.length) {
       const roles = element("ul", "personal-roles");
@@ -766,16 +874,37 @@
           previous = group;
         }
         const duty = element("li", "");
-        paragraph(duty, task.scopes.map(({ title }) => title).join("、") + " · " + task.kind, "muted");
+        paragraph(duty, [task.scopes.map(({ title }) => title).join("、"), task.kind, task.place].filter(Boolean).join(" · "), "muted");
         paragraph(duty, task.text);
         duties.append(duty);
       }
       body.append(rows);
     }
     if (!personalDialog.open) personalDialog.showModal();
-    else if (restoreDialogFocus) personalDialog.querySelector("button").focus({ preventScroll: true });
+    else if (restoreDialogFocus) personalDialog.querySelector("form button").focus({ preventScroll: true });
     body.scrollTop = scroll;
   }
+
+  find("share-personal-guide").addEventListener("click", async (event) => {
+    if (!openPerson || source.preview) return;
+    const url = new URL(location.pathname, location.origin);
+    url.searchParams.set("person", openPerson);
+    const button = event.currentTarget;
+    try {
+      await navigator.clipboard.writeText(url.href);
+      button.textContent = "已複製";
+    } catch {
+      const input = element("input", "personal-share-url");
+      input.readOnly = true;
+      input.value = url.href;
+      input.setAttribute("aria-label", "個人工作指南連結");
+      const body = find("personal-guide-body");
+      body.querySelector(".personal-share-url")?.remove();
+      body.prepend(input);
+      button.textContent = "選取連結";
+      input.select();
+    }
+  });
 
   function navigatePreview(id) {
     const target = find(id);
@@ -852,7 +981,7 @@
     source.previewData((snapshot, select) => {
       editSelection = select;
       document.body.classList.toggle("staff-editing", Boolean(select));
-      mount(snapshot);
+      mount(snapshot, true);
       find("main-content").hidden = false;
       status.textContent = select ? "點選時間或編輯按鈕修改內容" : "草稿預覽";
     }, navigatePreview);

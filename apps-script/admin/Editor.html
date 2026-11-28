@@ -253,7 +253,7 @@ function renderPreview() {
   if (!visibleDraft) return;
   if (!session) {
     const url = new URL(model.siteUrl);
-    url.searchParams.set('staff-editor', '3');
+    url.searchParams.set('staff-editor', '4');
     const nonce = crypto.randomUUID();
     url.hash = 'staff-preview=' + nonce;
     const frame = node('iframe');
@@ -362,6 +362,8 @@ function optionsFor(type, data) {
   if (type === 'person') return data.people.map(({ id, name }) => [id, name]);
   if (type === 'team') return [...data.teams, ...(data.reception.groups || [])].map(({ id, name }) => [id, namesIn(name, data)]);
   if (type === 'event') return data.schedule.flatMap(({ events }) => events.map(({ id, time, title }) => [id, time + ' ' + namesIn(title, data)]));
+  if (type === 'work') return teamWorkEntries(data).filter(({value}) => value?.id)
+    .map(({team,value}) => [value.id,namesIn(team.name + ' · ' + value.text,data)]);
   return Object.entries(states);
 }
 function fresh(spec) {
@@ -376,6 +378,7 @@ function fresh(spec) {
 }
 function titleFor(item, spec, index, data) {
   if (typeof item === 'string') return namesIn(item, data);
+  if (item.workId) return optionsFor('work',data).find(([id]) => id === item.workId)?.[1] || '引用組別工作';
   const person = data.people.find(({id}) => id === item.personId)?.name;
   if (item.to && person) return namesIn(item.to,data) + '（' + person + '）';
   return namesIn(item.name || item.title || item.label || item.date || item.role || item.moment ||
@@ -424,7 +427,7 @@ function renderField(parent, spec, owner, key, path, data, preferred) {
   } else {
     label.className = 'field';
     label.append(caption);
-    if (['person','team','event','status'].includes(spec.type)) {
+    if (['person','team','event','work','status'].includes(spec.type)) {
       control = node('select');
       if (spec.optional || !owner[key]) control.append(new Option(spec.optional ? '未指定' : '請選擇', ''));
       optionsFor(spec.type, data).forEach(([value, text]) => control.append(new Option(text, value)));
@@ -441,7 +444,7 @@ function renderField(parent, spec, owner, key, path, data, preferred) {
   }
   control.addEventListener('input', () => {
     if (spec.type === 'bool') owner[key] = key === 'hidden' ? !control.checked : control.checked;
-    else if (!control.value && spec.optional && ['person','team','event','status'].includes(spec.type)) delete owner[key];
+    else if (!control.value && spec.optional && ['person','team','event','work','status'].includes(spec.type)) delete owner[key];
     else owner[key] = control.value;
   });
   parent.append(label);
@@ -611,21 +614,22 @@ function personPicker(data, { label, selected = () => [], choose, create }) {
   return { wrapper,input };
 }
 
-function renderMembers(parent, spec, owner, key, path, data, preferred, onChange = () => {}) {
+function renderMembers(parent, spec, owner, key, path, data, preferred, onChange = () => {}, executionLabel) {
   const box = node('section');
   box.className = 'editor-section';
-  const heading = key === 'memberIds' ? '已加入組員' : fieldLabel(spec,key);
+  const heading = executionLabel || (key === 'memberIds' ? '已加入組員' : fieldLabel(spec,key));
   const tags = node('div');
   tags.className = 'row member-tags';
   function draw() {
     tags.replaceChildren();
     const selected = owner[key] || [];
-    if (!selected.length) tags.append(node('p','尚無' + (key === 'memberIds' ? '組員' : heading)));
+    if (!selected.length) tags.append(node('p','尚無' + (executionLabel || (key === 'memberIds' ? '組員' : heading))));
     selected.forEach((id) => {
       const person = data.people.find((item) => item.id === id);
       const tag = button((person?.name || '待公布') + ' ×',() => {
         owner[key] = selected.filter((value) => value !== id);
         draw();
+        onChange();
         picker.input.focus();
       },'member-tag');
       tag.setAttribute('aria-label','從' + heading + '移除' + person?.name);
@@ -638,9 +642,9 @@ function renderMembers(parent, spec, owner, key, path, data, preferred, onChange
     onChange();
   };
   const picker = personPicker(data,{
-    label:key === 'memberIds' ? '新增人員' : '新增' + heading,
+    label:executionLabel ? '新增' + executionLabel : key === 'memberIds' ? '新增人員' : '新增' + heading,
     selected:() => owner[key] || [], choose:add,
-    create:(name) => add(newPerson(data,name))
+    create:executionLabel ? undefined : (name) => add(newPerson(data,name))
   });
   box.append(node('h3',heading),tags,picker.wrapper);
   parent.append(box);
@@ -862,6 +866,138 @@ function textEditor(label, value, input, multiline = false) {
   return { field,control };
 }
 
+function teamWorkEntries(data) {
+  return teamCollections(data).flat().flatMap((team) => team.periods.flatMap((period) =>
+    period.items.map((value,index) => ({ team, period, value, index }))));
+}
+function scheduleEvents(data) {
+  return data.schedule.flatMap(({ events }) => events);
+}
+function executionFields(parent, value, specs, data, onChange = () => {}) {
+  const fields = node('div');
+  fields.className = 'fields';
+  for (const key of ['leaderId','place','time','phase']) renderField(fields, specs[key], value, key, [key], data);
+  for (const control of fields.querySelectorAll('input, textarea, select')) control.addEventListener('input',onChange);
+  renderMembers(fields, specs.memberIds, value, 'memberIds', ['executionMembers'], data, undefined, onChange, '工作人員');
+  parent.append(fields);
+}
+function renderEventWork(parent, event, data, target) {
+  const specs = model.schema.fields.schedule.item.fields.events.item.fields.work.item.fields;
+  const section = node('details');
+  section.className = 'editor-section';
+  section.open = target.field === 'work';
+  section.append(node('summary','詳細分工'), node('p','可引用組別既有工作，或為這項流程新增獨立工作。'));
+  const list = node('div');
+  list.className = 'entries';
+  const notice = node('p');
+  notice.className = 'muted';
+  notice.setAttribute('role','status');
+  const group = node('select');
+  group.append(new Option('選擇組別',''), ...optionsFor('team',data).map(([id,label]) => new Option(label,id)));
+  const tasks = node('select');
+  const pickGroup = node('label');
+  pickGroup.className = 'field';
+  pickGroup.append(node('span','引用組別'),group);
+  const pickTask = node('label');
+  pickTask.className = 'field';
+  pickTask.append(node('span','選擇組別工作'),tasks);
+
+  let available = [];
+  const append = (item) => {
+    (event.work ||= []).push(item);
+    draw(item.id);
+  };
+  const linkTask = button('引用所選工作',() => {
+    const source = available[Number(tasks.value)];
+    if (!source || tasks.value === '') return;
+    const value = typeof source.value === 'string' ? { text:source.value } : source.value;
+    value.id ||= fresh(specs.id);
+    value.detailManaged = true;
+    source.period.items[source.index] = value;
+    append({ id:fresh(specs.id), workId:value.id });
+  });
+  function updatePicker() {
+    const used = new Set(scheduleEvents(data).flatMap(({ work }) => (work || []).map(({workId}) => workId).filter(Boolean)));
+    available = teamWorkEntries(data).filter(({ team, value }) => team.id === group.value && !used.has(value?.id));
+    tasks.replaceChildren(new Option('選擇工作',''), ...available.map(({ period, value },index) =>
+      new Option(namesIn((period.hidden || value?.hidden ? '未公開 · ' : '') + period.label + ' · ' +
+        (typeof value === 'string' ? value : value.text),data),String(index))));
+    tasks.disabled = !available.length;
+    linkTask.disabled = true;
+  }
+  group.onchange = updatePicker;
+  tasks.onchange = () => { linkTask.disabled = tasks.value === ''; };
+
+  function draw(openId) {
+    list.replaceChildren();
+    if (!event.work?.length) list.append(node('p','尚未設定此流程的詳細工作。'));
+    (event.work || []).forEach((item,index) => {
+      const reference = item.workId && teamWorkEntries(data).find(({value}) => value?.id === item.workId);
+      const value = reference ? reference.value : item;
+      const row = node('details');
+      row.open = item.id === openId;
+      const heading = node('summary');
+      const refreshHeading = () => {
+        heading.textContent = (item.hidden ? '已隱藏 · ' : '') + (reference ? namesIn(reference.team.name,data) + ' · ' : '') +
+          (namesIn(value.text,data) || '新工作');
+      };
+      row.append(heading);
+      if (reference) row.append(node('p','修改內容、時間、地點或人員會同步到原組別與個人指南。這裡的顯示設定與刪除只影響詳細分工。'));
+      else {
+        renderField(row,specs.teamId,item,'teamId',['teamId'],data);
+        row.append(node('p','發布後會同步出現在相關組別及符合分工的個人指南。'));
+      }
+      const field = textEditor('工作說明',namesIn(value.text,data),(text) => {
+        value.text = text;
+        refreshHeading();
+      },true);
+      row.append(field.field);
+      executionFields(row,value,specs,data);
+      const shown = node('label');
+      shown.className = 'toggle';
+      const visibility = node('input');
+      visibility.type = 'checkbox';
+      visibility.checked = !item.hidden;
+      visibility.onchange = () => { item.hidden = !visibility.checked; refreshHeading(); };
+      shown.append(visibility,node('span',reference ? '顯示於詳細分工' : '顯示於網站'));
+      row.append(shown);
+      const move = node('label');
+      move.className = 'field';
+      const destination = node('select');
+      destination.append(new Option('目前流程',''), ...optionsFor('event',data).filter(([id]) => id !== event.id)
+        .map(([id,label]) => new Option(label,id)));
+      move.append(node('span','更改對應流程'),destination);
+      const moveButton = button('移至所選流程',() => {
+        const next = scheduleEvents(data).find(({id}) => id === destination.value);
+        if (!next) return;
+        (next.work ||= []).push(...event.work.splice(index,1));
+        notice.textContent = '已移至「' + namesIn(next.title,data) + '」。套用後可到該流程繼續編輯。';
+        draw();
+      });
+      moveButton.disabled = true;
+      destination.onchange = () => { moveButton.disabled = !destination.value; };
+      row.append(move,moveButton);
+      entryTools(row,event.work,index,'詳細分工工作',(next) => draw(event.work[next]?.id));
+      refreshHeading();
+      list.append(row);
+    });
+    updatePicker();
+  }
+  const add = node('details');
+  add.append(node('summary','引用組別既有工作'),pickGroup,pickTask,linkTask);
+  section.append(list,notice,button('新增獨立工作',() => append({ id:fresh(specs.id), text:'' })),add);
+  parent.append(section);
+  draw(target.workId);
+}
+
+function removeDeletedWorkLinks(data, previous) {
+  const ids = new Set(teamWorkEntries(data).flatMap(({value}) => value?.id ? [value.id] : []));
+  const removed = new Set(teamWorkEntries(previous).flatMap(({value}) => value?.id && !ids.has(value.id) ? [value.id] : []));
+  if (removed.size) for (const event of scheduleEvents(data)) {
+    if (event.work) event.work = event.work.filter(({workId}) => !removed.has(workId));
+  }
+}
+
 function renderTeamWork(parent, team, data, preferred) {
   const section = node('section');
   section.className = 'editor-section';
@@ -909,6 +1045,14 @@ function renderTeamWork(parent, team, data, preferred) {
           visible.onchange = () => { value.hidden = !visible.checked; period.items[task] = value; taskTitle(); };
           label.append(visible,node('span','顯示於網站'));
           details.append(summary,field.field,label);
+          const options = node('details');
+          options.append(node('summary','分工、時間及地點'));
+          const fields = model.schema.fields.teams.item.fields.periods.item.fields.items.item.fields;
+          if (fields.place) executionFields(options,value,fields,data,() => {
+            value.id ||= fresh(fields.id);
+            period.items[task] = value;
+          });
+          details.append(options);
           taskTitle();
           entryTools(details,period.items,task,summary.textContent || '工作',renderTasks);
           li.append(details);
@@ -942,7 +1086,8 @@ function renderTeamWork(parent, team, data, preferred) {
       options.append(linkField,show);
       entryTools(options,team.periods,index,'這個工作時段',draw);
       preview.append(when.field,list,button('新增工作',() => {
-        period.items.push({ text:'' });
+        const id = model.schema.fields.teams.item.fields.periods.item.fields.items.item.fields.id;
+        period.items.push(id ? { id:fresh(id), text:'' } : { text:'' });
         renderTasks(period.items.length - 1);
         transaction.focus?.focus();
       }),options);
@@ -988,6 +1133,7 @@ function renderTeamForm(parent, team, data, preferred) {
   }
   drawMembers();
   parent.append(members);
+  if (spec.place) renderField(parent,spec.place,team,'place',['place'],data,preferred);
   renderCandidates(parent,team,data,() => { drawMembers(); drawLeaders(); });
   renderTeamWork(parent,team,data,preferred);
   parent.append(textEditor('完成期限',namesIn(team.deadline,data),(value) => { team.deadline = value; }).field);
@@ -1083,6 +1229,7 @@ function edit(title, draw, preferred, privateFields = false) {
       if (fields.querySelector('[aria-invalid="true"]')) throw new Error('請先修正標示的人員姓名。');
       const candidate = copy(data);
       transaction.prepare?.(candidate);
+      removeDeletedWorkLinks(candidate,draft);
       if (same(candidate,draft)) { dismissPanel(); return; }
       const projected = await rpc('preview', { data:candidate });
       draft = candidate;
@@ -1138,8 +1285,9 @@ function editRecord(area, id, field, target = {}, create = false) {
     const record = list[index];
     const extras = area === 'event' ? ['overviewHidden','guideTeamIds','featured','details','note'] : [];
     if (area === 'team') renderTeamForm(parent,record,data,preferred);
-    else Object.entries(spec.fields).filter(([key]) => !extras.includes(key))
+    else Object.entries(spec.fields).filter(([key]) => key !== 'work' && !extras.includes(key))
       .forEach(([key, definition]) => renderField(parent, definition, record, key, [key], data, preferred));
+    if (area === 'event' && spec.fields.work) renderEventWork(parent,record,data,target);
     if (extras.length) {
       const options = node('details');
       options.append(node('summary','補充說明及顯示設定'));
@@ -1368,7 +1516,7 @@ get('save').onclick = () => perform(async () => {
 function describeChange(value, spec, data) {
   if (value === undefined || value === null || value === '') return '—';
   if (spec.type === 'bool') return value ? '是' : '否';
-  if (['person','team','event','status'].includes(spec.type)) {
+  if (['person','team','event','work','status'].includes(spec.type)) {
     return optionsFor(spec.type,data).find(([id]) => id === value)?.[1] || '未指定';
   }
   if (spec.type === 'workItem') return namesIn(typeof value === 'string' ? value : value.text,data);
@@ -1434,7 +1582,7 @@ function reviewChanges(before, after, schema) {
     if (spec.type === 'list' && ['object','workItem'].includes(spec.item.type)) {
       const oldItems = a || [];
       const { pairs,removed } = pairRecords(oldItems,b || []);
-      const context = ['people','management','assignments'].includes(key) ? [...path,label] : path;
+      const context = ['people','management','assignments','work'].includes(key) ? [...path,label] : path;
       for (const { item,index } of removed) {
         add([...context,titleFor(item,spec.item,index,before),'已刪除'].join('／'),describeChange(item,spec.item,before),'—');
       }

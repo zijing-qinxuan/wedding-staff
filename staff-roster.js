@@ -27,7 +27,9 @@ const staffRoster = (() => {
     // Published work items already carry these assignments. Accept the existing
     // sentences and the role: names format without inferring roles from roster order.
     for (const { items: tasks } of team.periods) {
-      for (const task of tasks) {
+      for (const item of tasks) {
+        const task = typeof item === "string" ? item : item.text;
+        if (!task || item.hidden || item.leaderId || item.memberIds?.length) continue;
         const text = task.trim().replace(/[。.]$/, "");
         const labelled = text.match(/^(胸花發放|(?:工作人員)?胸章發放)[：:]\s*(.+)$/);
         const sentence = text.match(/^(.+?)\s*負責\s*(胸花|(?:工作人員)?胸章)(?:發放)?$/);

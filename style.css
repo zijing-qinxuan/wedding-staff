@@ -61,6 +61,34 @@ main > section { padding-block: clamp(.9rem, 3vw, 1.7rem); border-top: 1px solid
 .timeline-day + .timeline-day { margin-top: 1.5rem; }
 .overview-grid { display: grid; gap: .8rem 1.7rem; }
 .overview-phase h3 { color: var(--gold); padding-bottom: .15rem; }
+.schedule-modes { display: flex; gap: .4rem; margin: -.2rem 0 .8rem; }
+.schedule-modes button {
+  min-height: 44px;
+  padding: .25rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  color: var(--ink);
+  background: transparent;
+}
+.schedule-modes button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: var(--surface); }
+.schedule-modes button:disabled { opacity: .55; cursor: default; }
+.execution-group { border-top: 1px solid var(--rule); margin-top: .85rem; }
+.execution-group > h3 { padding-block: .55rem; color: var(--gold); }
+.execution-rows { list-style: none; padding: 0; }
+.execution-row {
+  display: grid;
+  grid-template-columns: minmax(10rem, 15rem) minmax(0, 1fr);
+  gap: .2rem 1rem;
+  padding-block: .45rem;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.execution-context { display: block; }
+.execution-items { padding-inline-start: 1.2rem; }
+.execution-items li + li { margin-top: .2rem; }
+@media (max-width: 599px) {
+  .execution-row { grid-template-columns: minmax(0, 1fr); }
+}
 .time-row {
   display: grid;
   grid-template-columns: 8rem minmax(0, 1fr);
@@ -271,6 +299,8 @@ html:has(.personal-guide[open]) { overflow: hidden; }
   background: transparent;
   white-space: nowrap;
 }
+.personal-guide-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: .35rem; }
+.personal-share-url { width: 100%; margin-bottom: .6rem; }
 .personal-guide-body {
   min-height: 0;
   overflow: auto;

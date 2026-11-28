@@ -11,8 +11,14 @@ function staffSchema_() {
   const hide = bool('隱藏於公開網站');
   const status = { type: 'status', label: '確認狀態' };
   const tasks = (label) => list(label, text('說明'));
+  const execution = {
+    leaderId: person('工作負責人', true),
+    memberIds: list('工作人員', person('人員'), true),
+    place: text('工作地點', true), time: text('工作時間', true), phase: text('工作階段', true)
+  };
   const workItem = { ...obj('工作事項', {
-    text: text('工作內容'), hidden: bool('僅供管理者查看')
+    id: { ...id('工作 ID'), optional: true }, text: text('工作內容'), ...execution,
+    detailManaged: bool('從總流程選擇是否顯示'), hidden: bool('僅供管理者查看')
   }), type: 'workItem' };
   const eventRef = (label) => ref('event', label, true);
   const timed = {
@@ -23,6 +29,7 @@ function staffSchema_() {
     id: id('組別 ID'), name: text('組別名稱'), leaderId: person('負責人', true),
     memberIds: list('組員', person('人員')), supportIds: list('支援人員', person('人員'), true),
     candidateIds: list('姓名待核對', person('人員'), true), deadline: text('完成期限', true),
+    place: text('組別預設地點', true),
     status, hidden: hide, indexHidden: bool('從工作分配索引隱藏'),
     periods: list('各時段工作', obj('工作時段', {
       label: text('時段或工作名稱'), scheduleId: eventRef('連結總流程時間'),
@@ -57,6 +64,10 @@ function staffSchema_() {
         note: text('公開備註', true), internalNote: privateText('內部備註'), status,
         overviewTitle: text('首頁短標題（留空沿用名稱）', true),
         overviewHidden: bool('從首頁總流程隱藏'),
+        work: list('詳細分工', obj('詳細工作', {
+          id: id('詳細工作 ID'), workId: ref('work', '引用組別工作', true),
+          text: text('工作內容', true), teamId: ref('team', '相關組別', true), ...execution, hidden: hide
+        }), true),
         guideTeamIds: list('顯示完整流程的工作組別', ref('team', '工作組別'), true),
         featured: bool('強調此流程'), hidden: hide
       }))
@@ -180,7 +191,7 @@ function validateStaff_(data) {
     if (!value && field.optional) return;
     if (field.type === 'status' && !statuses.includes(value)) errors.push(path + '：狀態無效');
     if (field.type === 'id' && !idPattern.test(value)) errors.push(path + '：ID 格式有誤');
-    if (['person', 'team', 'event'].includes(field.type)) refs.push([field.type, value, path]);
+    if (['person', 'team', 'event', 'work'].includes(field.type)) refs.push([field.type, value, path]);
     if (field.type === 'text' && !field.private) {
       for (const token of value.matchAll(tokenPattern)) refs.push(['person', token[1], path]);
     }
@@ -195,14 +206,29 @@ function validateStaff_(data) {
     });
     return ids;
   }
+  const teams = [...data.teams, ...(data.reception.groups || [])];
+  const events = data.schedule.flatMap(({ events }) => events);
+  const teamWork = teams.flatMap(({ periods }) => periods.flatMap(({ items }) => items.filter((item) => item?.id)));
+  const eventWork = events.flatMap(({ work }) => work || []);
   const ids = {
-    person: index(data.people, '人員'), team: index([...data.teams, ...(data.reception.groups || [])], '組別'),
-    event: index(data.schedule.flatMap((date) => date.events), '流程')
+    person: index(data.people, '人員'), team: index(teams, '組別'),
+    event: index(events, '流程'), work: index(teamWork, '組別工作')
   };
+  index([...teamWork, ...eventWork], '工作');
+  const linkedWork = new Set();
+  eventWork.forEach((item) => {
+    if (item.workId) {
+      if (linkedWork.has(item.workId)) errors.push('詳細分工：同一組別工作只能引用一次。');
+      linkedWork.add(item.workId);
+      if (Object.keys(item).some((key) => !['id','workId','hidden'].includes(key))) {
+        errors.push('詳細分工：請在引用來源設定工作內容、人員、地點及時間。');
+      }
+    } else if (!item.text?.trim()) errors.push('詳細分工：請輸入獨立工作內容。');
+  });
   index(data.schedule, '日期');
   index(data.venues, '場地');
   index(data.cameraPositions, '機位');
-  [...data.teams, ...(data.reception.groups || [])].forEach((team) => {
+  teams.forEach((team) => {
     ['memberIds', 'supportIds', 'candidateIds'].forEach((key) => {
       const members = team[key] || [];
       if (members.length !== new Set(members).size) errors.push(team.name + '：組員名單有重複人員');
@@ -222,18 +248,36 @@ function publicStaff_(data) {
   validateStaff_(data);
   const names = new Map(data.people.map(({ id, name }) => [id, name]));
   const publicPeople = new Set();
+  const visibleTeams = [
+    ...(data.sections?.teams ? [] : data.teams),
+    ...(data.sections?.reception ? [] : data.reception.groups || [])
+  ].filter((team) => !team.hidden);
+  const visibleTeamIds = new Set(visibleTeams.map(({ id }) => id));
+  const visibleWorkIds = new Set(visibleTeams.flatMap(({ periods }) => periods.filter((period) => !period.hidden)
+    .flatMap(({ items }) => items.filter((item) => item?.id && !item.hidden).map(({ id }) => id))));
+  const linkedWorkIds = new Set(data.schedule.flatMap(({ events }) => events.flatMap(({ work }) =>
+    (work || []).map(({ workId }) => workId).filter(Boolean))));
   function project(value, field) {
     if (value === undefined || field.private) return undefined;
     if (field.type === 'workItem') {
       if (typeof value === 'string') return project(value, field.fields.text);
-      return value.hidden ? undefined : project(value.text, field.fields.text);
+      if (value.hidden) return undefined;
+      if (Object.keys(value).every((key) => ['text','hidden'].includes(key))) return project(value.text, field.fields.text);
+      const item = project(value, { ...field, type: 'object' });
+      if (linkedWorkIds.has(item.id)) item.detailManaged = true;
+      return item;
     }
     if (field.type === 'object') {
       if (value.hidden) return undefined;
       const pairs = [];
       Object.entries(field.fields).forEach(([key, spec]) => {
-        if (key === 'hidden') return;
-        const item = project(value[key], spec);
+        if (key === 'hidden' || key === 'place' && data.sections?.venues) return;
+        let input = value[key];
+        if (key === 'work' && spec.type === 'list' && input) {
+          input = data.sections?.schedule ? undefined : input.filter((item) => !item.hidden &&
+            (!item.workId || visibleWorkIds.has(item.workId)) && (!item.teamId || visibleTeamIds.has(item.teamId)));
+        }
+        const item = project(input, spec);
         if (item !== undefined) pairs.push([key, item]);
       });
       return Object.fromEntries(pairs);
